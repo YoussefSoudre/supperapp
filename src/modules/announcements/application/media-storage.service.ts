@@ -1,6 +1,6 @@
-import { Injectable, Logger, UnsupportedMediaTypeException } from '@nestjs/common';
+import { Injectable, Logger, UnsupportedMediaTypeException, BadRequestException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { join, extname } from 'path';
+import { join, extname, resolve, normalize } from 'path';
 import { existsSync, mkdirSync } from 'fs';
 import { rename } from 'fs/promises';
 import { v4 as uuidv4 } from 'uuid';
@@ -66,13 +66,21 @@ export class MediaStorageService {
    * @param file     L'objet Express.Multer.File
    */
   async save(file: Express.Multer.File): Promise<UploadResult> {
-    const ext       = extname(file.originalname).toLowerCase();
+    const rawExt    = extname(file.originalname).toLowerCase();
+    const ext       = this.sanitizeExtension(rawExt);        // protection path traversal
     const mediaType = this.resolveMediaType(ext, file.mimetype);
 
     this.validateSize(file, mediaType);
 
     const filename  = `${uuidv4()}${ext}`;
-    const destPath  = join(this.uploadDir, filename);
+    const destPath  = resolve(join(this.uploadDir, filename));
+
+    // ── Protection path traversal — s'assurer que destPath est dans uploadDir ──
+    const safeBase = resolve(this.uploadDir);
+    if (!destPath.startsWith(safeBase + require('path').sep) && destPath !== safeBase) {
+      this.logger.error(`Path traversal detected: ${destPath}`);
+      throw new BadRequestException('Nom de fichier invalide.');
+    }
 
     // Si Multer a déjà écrit le fichier sur disque (diskStorage), on le déplace
     // Si Multer est en memoryStorage, on écrit le buffer
@@ -99,6 +107,19 @@ export class MediaStorageService {
   }
 
   // ─── Helpers ──────────────────────────────────────────────────────────────
+
+  /**
+   * Sanitise l'extension pour prévenir les attaques par path traversal.
+   * N'accepte que les extensions composées de caractères alphanumériques (max 5 chars).
+   */
+  private sanitizeExtension(ext: string): string {
+    // Supprimer tout sauf lettres et chiffres
+    const clean = ext.replace(/[^a-z0-9]/g, '');
+    if (clean.length === 0 || clean.length > 5) {
+      throw new BadRequestException('Extension de fichier non valide.');
+    }
+    return `.${clean}`;
+  }
 
   private resolveMediaType(
     ext: string,

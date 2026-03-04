@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { APP_FILTER, APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { validateEnv } from './config/env.validation';
 import { ThrottlerModule } from '@nestjs/throttler';
+import { RedisThrottlerStorage } from './infrastructure/redis/redis-throttler.storage';
 
 // ─── Infrastructure ───────────────────────────────────────────────────────────
 import { SharedModule } from './shared/shared.module';
@@ -33,6 +34,7 @@ import { AnnouncementsModule } from './modules/announcements/announcements.modul
 // ─── Guards, Filters, Interceptors ────────────────────────────────────────────
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
 import { ResponseInterceptor } from './shared/interceptors/response.interceptor';
+import { SecurityInterceptor } from './shared/interceptors/security.interceptor';
 import { JwtAuthGuard } from './shared/guards/jwt-auth.guard';
 import { PermissionGuard } from './shared/guards/permission.guard';
 import { CityScopeGuard } from './shared/guards/city-scope.guard';
@@ -46,11 +48,17 @@ import { CityScopeGuard } from './shared/guards/city-scope.guard';
       validate: validateEnv,
     }),
 
-    // ─── Rate Limiting ───────────────────────────────────────────────────────
-    ThrottlerModule.forRoot([
-      { name: 'short', ttl: 1000,  limit: 10  },  // 10 req/sec
-      { name: 'long',  ttl: 60000, limit: 200 },  // 200 req/min
-    ]),
+    // ─── Rate Limiting (Redis-backed, partagé multi-instances) ────────────────
+    ThrottlerModule.forRootAsync({
+      inject:     [RedisThrottlerStorage],
+      useFactory: (storage: RedisThrottlerStorage) => ({
+        throttlers: [
+          { name: 'short', ttl: 1000,  limit: 10  },  // 10 req/sec
+          { name: 'long',  ttl: 60000, limit: 200 },  // 200 req/min
+        ],
+        storage,
+      }),
+    }),
 
     // ─── Infrastructure ──────────────────────────────────────────────────────
     SharedModule,
@@ -91,6 +99,7 @@ import { CityScopeGuard } from './shared/guards/city-scope.guard';
   providers: [
     { provide: APP_FILTER,      useClass: GlobalExceptionFilter },
     { provide: APP_INTERCEPTOR, useClass: ResponseInterceptor   },
+    { provide: APP_INTERCEPTOR, useClass: SecurityInterceptor   },  // détection SQLi, XSS, path traversal
     // RBAC global guards — ordre d'exécution: JWT → Permission → CityScope
     { provide: APP_GUARD, useClass: JwtAuthGuard    },
     { provide: APP_GUARD, useClass: PermissionGuard },

@@ -3,6 +3,8 @@ import { NestExpressApplication } from '@nestjs/platform-express';
 import { VersioningType, ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
+import * as express from 'express';
+import helmet from 'helmet';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
@@ -10,6 +12,41 @@ async function bootstrap(): Promise<void> {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
+
+  // ─── Trust proxy (IP réelle derrière nginx / load-balancer) ──────────────
+  app.set('trust proxy', 1);
+
+  // ─── Helmet — en-têtes de sécurité HTTP ──────────────────────────────────
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc:  ["'self'"],
+          scriptSrc:   ["'self'"],
+          styleSrc:    ["'self'", "'unsafe-inline'"],   // Swagger UI inline styles
+          imgSrc:      ["'self'", 'data:', 'https:'],
+          connectSrc:  ["'self'"],
+          fontSrc:     ["'self'", 'https:'],
+          objectSrc:   ["'none'"],
+          upgradeInsecureRequests: [],
+        },
+      },
+      hsts: {
+        maxAge:            31536000,  // 1 an
+        includeSubDomains: true,
+        preload:           true,
+      },
+      referrerPolicy:         { policy: 'strict-origin-when-cross-origin' },
+      crossOriginEmbedderPolicy: false,  // nécessaire pour Swagger UI
+    }),
+  );
+
+  // ─── Limite de taille des corps de requête ────────────────────────────────
+  app.use(express.json({ limit: '10mb' }));
+  app.use(express.urlencoded({ limit: '10mb', extended: true }));
+
+  // ─── Supprimer l'en-tête x-powered-by ────────────────────────────────────
+  app.getHttpAdapter().getInstance().disable('x-powered-by');
 
   // ─── Versioning (/api/v1/...) ─────────────────────────────────────────────
   app.enableVersioning({ type: VersioningType.URI });

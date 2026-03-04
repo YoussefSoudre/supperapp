@@ -1,4 +1,4 @@
-import { Body, Controller, HttpCode, HttpStatus, Post, Query, Request } from '@nestjs/common';
+import { Body, Controller, HttpCode, HttpStatus, Post, Query, Request, UseGuards } from '@nestjs/common';
 import {
   ApiTags, ApiOperation, ApiBearerAuth,
   ApiResponse, ApiBody, ApiQuery,
@@ -11,6 +11,7 @@ import { LoginDto } from '../application/dto/login.dto';
 import { RegisterDto } from '../application/dto/register.dto';
 import { SendOtpDto, VerifyOtpDto, RefreshTokenDto } from '../application/dto/otp.dto';
 import { Public } from '../../../shared/decorators/public.decorator';
+import { BruteForceGuard } from '../../../shared/guards/brute-force.guard';
 import {
   AuthTokensDto, OtpResponseDto, OtpVerifyResponseDto,
   ValidationErrorDto, UnauthorizedDto, TooManyRequestsDto,
@@ -25,6 +26,7 @@ export class AuthController {
   ) {}
 
   @Public()
+  @UseGuards(BruteForceGuard)
   @Post('register')
   @ApiOperation({
     summary: 'Créer un compte utilisateur',
@@ -46,6 +48,7 @@ export class AuthController {
   }
 
   @Public()
+  @UseGuards(BruteForceGuard)
   @Post('login')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
@@ -108,6 +111,7 @@ export class AuthController {
   // ─── OTP ────────────────────────────────────────────────────────────────
 
   @Public()
+  @UseGuards(BruteForceGuard)
   @Post('otp/send')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
