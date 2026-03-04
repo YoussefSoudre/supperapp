@@ -1,0 +1,176 @@
+version: '3.9'
+
+services:
+  # ─── API ───────────────────────────────────────────────────────────────────
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: development
+    container_name: superapp_api
+    ports:
+      - "3000:3000"
+      - "3001:3001"   # WebSocket (Socket.IO — /notifications namespace)
+    environment:
+      NODE_ENV: development
+      PORT: 3000
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: superapp
+      DB_PASSWORD: superapp_secret
+      DB_NAME: superapp_bf
+      REDIS_HOST: redis
+      REDIS_PORT: 6379
+      JWT_SECRET: superapp-jwt-secret-change-in-production-min-32-chars
+      JWT_EXPIRES_IN: 7d
+      ALLOWED_ORIGINS: http://localhost:3001,http://localhost:3002
+      # ── Notifications — Channel Providers (configurer en prod) ─────────────
+      SMS_PROVIDER: twilio           # twilio | orange
+      TWILIO_ACCOUNT_SID: ""         # TODO: à renseigner
+      TWILIO_AUTH_TOKEN: ""          # TODO: à renseigner
+      TWILIO_FROM_NUMBER: ""         # TODO: à renseigner
+      EMAIL_PROVIDER: smtp           # smtp | sendgrid
+      SMTP_HOST: mailhog
+      SMTP_PORT: 1025
+      SMTP_USER: ""
+      SMTP_PASS: ""
+      EMAIL_FROM: noreply@superapp.bf
+      # FCM_PROJECT_ID, FCM_PRIVATE_KEY, FCM_CLIENT_EMAIL via secrets en prod
+    volumes:
+      - ./src:/app/src
+      - /app/node_modules
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      mailhog:
+        condition: service_started
+    command: npm run start:dev
+    restart: unless-stopped
+    networks:
+      - superapp_net
+
+  # ─── PostgreSQL ────────────────────────────────────────────────────────────
+  postgres:
+    image: postgis/postgis:16-3.4-alpine
+    container_name: superapp_postgres
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: superapp
+      POSTGRES_PASSWORD: superapp_secret
+      POSTGRES_DB: superapp_bf
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./scripts/init-db.sql:/docker-entrypoint-initdb.d/01-init.sql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U superapp -d superapp_bf"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    shm_size: 256m       # Amélioration perf pour grandes tables
+    command: >
+      postgres
+        -c max_connections=200
+        -c shared_buffers=256MB
+        -c effective_cache_size=768MB
+        -c maintenance_work_mem=64MB
+        -c checkpoint_completion_target=0.9
+        -c wal_buffers=16MB
+        -c default_statistics_target=100
+        -c random_page_cost=1.1
+        -c effective_io_concurrency=200
+    restart: unless-stopped
+    networks:
+      - superapp_net
+
+  # ─── Redis ────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: superapp_redis
+    ports:
+      - "6379:6379"
+    command: >
+      redis-server
+        --maxmemory 256mb
+        --maxmemory-policy allkeys-lru
+        --appendonly yes
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - superapp_net
+
+  # ─── PgAdmin (Dev only) ─────────────────────────────────────────────────
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: superapp_pgadmin
+    ports:
+      - "5050:80"
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@superapp.bf
+      PGADMIN_DEFAULT_PASSWORD: admin
+    depends_on:
+      - postgres
+    profiles:
+      - tools
+    networks:
+      - superapp_net
+
+  # ─── Redis Commander (Dev only) ─────────────────────────────────────────
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: superapp_redis_ui
+    ports:
+      - "8081:8081"
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    depends_on:
+      - redis
+    profiles:
+      - tools
+    networks:
+      - superapp_net
+
+  # ─── MailHog — SMTP local pour tester les emails (Dev only) ─────────────
+  # UI : http://localhost:8025
+  # SMTP : mailhog:1025
+  mailhog:
+    image: mailhog/mailhog:latest
+    container_name: superapp_mailhog
+    ports:
+      - "1025:1025"   # SMTP
+      - "8025:8025"   # Web UI
+    profiles:
+      - tools
+    networks:
+      - superapp_net
+
+  # ─── Bull Board — Dashboard BullMQ (Dev only) ────────────────────────────
+  # Note : Bull Board est intégré dans l'API NestJS via @bull-board/nestjs.
+  # Accès : http://localhost:3000/bull-board  (après configuration du module)
+  #
+  # Pour activer, ajouter dans main.ts :
+  #   const serverAdapter = new ExpressAdapter();
+  #   serverAdapter.setBasePath('/bull-board');
+  #   createBullBoard({
+  #     queues: Object.values(NOTIFICATION_QUEUES).map(q => new BullMQAdapter(queue)),
+  #     serverAdapter,
+  #   });
+  #   app.use('/bull-board', serverAdapter.getRouter());
+  #
+  # Packages requis : yarn add @bull-board/api @bull-board/nestjs @bull-board/express
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  superapp_net:
+    driver: bridge
