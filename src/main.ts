@@ -1,11 +1,13 @@
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { VersioningType, ValidationPipe, Logger } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import { join } from 'path';
 import { AppModule } from './app.module';
 
 async function bootstrap(): Promise<void> {
   const logger = new Logger('Bootstrap');
-  const app = await NestFactory.create(AppModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     logger: ['error', 'warn', 'log', 'debug'],
   });
 
@@ -22,6 +24,13 @@ async function bootstrap(): Promise<void> {
       transformOptions: { enableImplicitConversion: true },
     }),
   );
+
+  // ─── Fichiers statiques (médias uploadés) ─────────────────────────────────
+  // /static/announcements/:filename → uploads/announcements/:filename
+  // En production, remplacer par un CDN (S3 + CloudFront).
+  app.useStaticAssets(join(process.cwd(), 'uploads'), {
+    prefix: '/static',
+  });
 
   // ─── CORS ─────────────────────────────────────────────────────────────────
   app.enableCors({
@@ -108,6 +117,7 @@ L'access_token est valable **15 minutes**. Utilisez \`POST /auth/refresh\` pour 
       .addTag('Cities', 'Villes couvertes par la plateforme')
       .addTag('Admin', 'RBAC — rôles, permissions et assignations')
       .addTag('Analytics', 'KPIs, revenus et métriques opérationnelles')
+      .addTag('Announcements', 'Annonces système — admin vers utilisateurs/villes')
       .build();
 
     const document = SwaggerModule.createDocument(app, config);

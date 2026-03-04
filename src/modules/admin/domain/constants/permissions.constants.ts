@@ -79,6 +79,10 @@ export const PERM_ADMIN_CONFIG       = 'admin:config';       // Configuration sy
 export const PERM_NOTIF_SEND         = 'notifications:send';      // Envoyer notif individuelle
 export const PERM_NOTIF_BROADCAST    = 'notifications:broadcast'; // Broadcast par ville/rôle
 
+// ─── Announcements ───────────────────────────────────────────────────────────
+export const PERM_ANNOUNCEMENTS_READ   = 'announcements:read';   // Lire toutes les annonces (admin)
+export const PERM_ANNOUNCEMENTS_MANAGE = 'announcements:manage'; // Créer, publier, archiver des annonces
+
 // ─────────────────────────────────────────────────────────────────────────────
 // Matrice des permissions par rôle système
 // ─────────────────────────────────────────────────────────────────────────────
@@ -108,6 +112,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERM_ADMIN_ROLES, PERM_ADMIN_PERMISSIONS, PERM_ADMIN_USERS_ROLES,
     PERM_ADMIN_AUDIT_LOGS, PERM_ADMIN_CONFIG,
     PERM_NOTIF_SEND, PERM_NOTIF_BROADCAST,
+    PERM_ANNOUNCEMENTS_READ, PERM_ANNOUNCEMENTS_MANAGE,
   ],
 
   // ── City Admin ──────────────────────────────────────────────────────────
@@ -124,6 +129,7 @@ export const ROLE_PERMISSIONS: Record<string, string[]> = {
     PERM_ANALYTICS_READ,
     PERM_REFERRAL_READ,
     PERM_NOTIF_SEND, PERM_NOTIF_BROADCAST,
+    PERM_ANNOUNCEMENTS_READ, PERM_ANNOUNCEMENTS_MANAGE,
     PERM_ADMIN_AUDIT_LOGS,
   ],
 
@@ -200,6 +206,7 @@ export const ALL_PERMISSION_SLUGS = [
   PERM_ADMIN_ROLES, PERM_ADMIN_PERMISSIONS, PERM_ADMIN_USERS_ROLES,
   PERM_ADMIN_AUDIT_LOGS, PERM_ADMIN_CONFIG,
   PERM_NOTIF_SEND, PERM_NOTIF_BROADCAST,
+  PERM_ANNOUNCEMENTS_READ, PERM_ANNOUNCEMENTS_MANAGE,
 ] as const;
 
 export type PermissionSlug = (typeof ALL_PERMISSION_SLUGS)[number];

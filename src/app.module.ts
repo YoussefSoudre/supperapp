@@ -28,6 +28,7 @@ import { AdminModule } from './modules/admin/admin.module';
 import { AnalyticsModule } from './modules/analytics/analytics.module';
 import { DispatchModule } from './modules/dispatch/dispatch.module';
 import { SchedulingModule } from './modules/scheduling/scheduling.module';
+import { AnnouncementsModule } from './modules/announcements/announcements.module';
 
 // ─── Guards, Filters, Interceptors ────────────────────────────────────────────
 import { GlobalExceptionFilter } from './shared/filters/global-exception.filter';
@@ -85,6 +86,7 @@ import { CityScopeGuard } from './shared/guards/city-scope.guard';
     AnalyticsModule,     // écoute tous les events en lecture seule
     DispatchModule,      // écoute ride.requested
     SchedulingModule,    // tâches cron
+    AnnouncementsModule, // annonces système (admin → utilisateurs)
   ],
   providers: [
     { provide: APP_FILTER,      useClass: GlobalExceptionFilter },
