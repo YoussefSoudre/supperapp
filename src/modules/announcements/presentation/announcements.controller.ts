@@ -43,6 +43,7 @@ import { MediaStorageService } from '../application/media-storage.service';
 import {
   AnnouncementFilterDto,
   CreateAnnouncementDto,
+  MarkReadDto,
   UpdateAnnouncementDto,
 } from './dto/announcement.dto';
 
@@ -239,7 +240,10 @@ export class AnnouncementsController {
   @ApiForbiddenResponse()
   @ApiUnauthorizedResponse()
   create(@Request() req: AuthRequest, @Body() dto: CreateAnnouncementDto) {
-    return this.service.create(req.user.id, dto);
+    return this.service.create(
+      { id: req.user.id, role: req.user.role, cityId: req.user.cityId },
+      dto,
+    );
   }
 
   @Get('admin/list')
@@ -285,7 +289,7 @@ export class AnnouncementsController {
     @Request() req: AuthRequest,
     @Body() dto: UpdateAnnouncementDto,
   ) {
-    return this.service.update(id, req.user.id, dto);
+    return this.service.update(id, { id: req.user.id, role: req.user.role, cityId: req.user.cityId }, dto);
   }
 
   @Post('admin/:id/publish')
@@ -319,7 +323,7 @@ export class AnnouncementsController {
     @Param('id', ParseUUIDPipe) id: string,
     @Request() req: AuthRequest,
   ) {
-    return this.service.publish(id, req.user.id);
+    return this.service.publish(id, { id: req.user.id, role: req.user.role, cityId: req.user.cityId });
   }
 
   @Post('admin/:id/archive')
@@ -335,8 +339,8 @@ export class AnnouncementsController {
   @ApiNotFoundResponse()
   @ApiForbiddenResponse()
   @ApiUnauthorizedResponse()
-  archive(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.archive(id);
+  archive(@Param('id', ParseUUIDPipe) id: string, @Request() req: AuthRequest) {
+    return this.service.archive(id, req.user.id);
   }
 
   @Delete('admin/:id')
@@ -352,7 +356,137 @@ export class AnnouncementsController {
   @ApiNotFoundResponse()
   @ApiForbiddenResponse()
   @ApiUnauthorizedResponse()
-  remove(@Param('id', ParseUUIDPipe) id: string) {
-    return this.service.remove(id);
+  remove(@Param('id', ParseUUIDPipe) id: string, @Request() req: AuthRequest) {
+    return this.service.remove(id, req.user.id);
+  }
+
+  // ─── Nouveaux endpoints v2 ────────────────────────────────────────────────
+
+  @Post('admin/:id/schedule')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
+  @ApiOperation({
+    summary: '[Admin] Planifier la publication',
+    description: 'Définit une date future de publication automatique (DRAFT → SCHEDULED). Le cron publie automatiquement à l\'heure définie.',
+  })
+  @ApiOkResponse({ schema: { example: { id: 'uuid', status: 'scheduled', scheduledAt: '2026-03-10T09:00:00Z' } } })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  schedule(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: AuthRequest,
+    @Body('scheduledAt') scheduledAt: string,
+  ) {
+    return this.service.schedule(
+      id,
+      { id: req.user.id, role: req.user.role, cityId: req.user.cityId },
+      new Date(scheduledAt),
+    );
+  }
+
+  @Post('admin/:id/republish')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
+  @HttpCode(HttpStatus.OK)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
+  @ApiOperation({
+    summary: '[Admin] Réactiver une annonce archivée',
+    description: 'Remet une annonce ARCHIVED en DRAFT. Le contenu est conservé intégralement. L\'admin peut ensuite la modifier et la re-publier.',
+  })
+  @ApiOkResponse({ schema: { example: { id: 'uuid', status: 'draft' } } })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  republish(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: AuthRequest,
+  ) {
+    return this.service.republish(id, { id: req.user.id, role: req.user.role, cityId: req.user.cityId });
+  }
+
+  @Post('admin/:id/duplicate')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce source' })
+  @ApiOperation({
+    summary: '[Admin] Cloner une annonce',
+    description: 'Crée une copie DRAFT de l\'annonce source. Utile pour les annonces récurrentes. Le titre est préfixé par `[Copie]`.',
+  })
+  @ApiOkResponse({ schema: { example: { id: 'new-uuid', title: '[Copie] Maintenance', status: 'draft' } } })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  duplicate(
+    @Param('id', ParseUUIDPipe) id: string,
+    @Request() req: AuthRequest,
+  ) {
+    return this.service.duplicate(id, { id: req.user.id, role: req.user.role, cityId: req.user.cityId });
+  }
+
+  @Get('admin/:id/audit')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_READ)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
+  @ApiOperation({
+    summary: '[Admin] Journal d\'audit d\'une annonce',
+    description: 'Retourne l\'historique de toutes les actions effectuées sur l\'annonce (création, modification, publication, archivage...).',
+  })
+  @ApiOkResponse({ description: 'Liste des entrées d\'audit' })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  getAuditLog(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getAuditLog(id);
+  }
+
+  @Get('admin/:id/audience')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_READ)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
+  @ApiOperation({
+    summary: '[Admin] Estimation d\'audience',
+    description: 'Retourne le nombre estimé d\'utilisateurs qui recevront le broadcast (basé sur scope + ville + rôles).',
+  })
+  @ApiOkResponse({
+    schema: {
+      example: { estimatedUsers: 1250, scope: 'city', cityId: 'uuid', targetRoles: ['user'] },
+    },
+  })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  getAudience(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.estimateAudience(id);
+  }
+
+  @Get('admin/:id/reads')
+  @UseGuards(PermissionGuard)
+  @RequirePermission(PERM_ANNOUNCEMENTS_READ)
+  @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
+  @ApiOperation({ summary: '[Admin] Nombre de lectures', description: 'Retourne le nombre d\'utilisateurs ayant marqué l\'annonce comme lue.' })
+  @ApiOkResponse({ schema: { example: { announcementId: 'uuid', readCount: 342 } } })
+  @ApiNotFoundResponse()
+  @ApiForbiddenResponse()
+  @ApiUnauthorizedResponse()
+  getReadCount(@Param('id', ParseUUIDPipe) id: string) {
+    return this.service.getReadCount(id);
+  }
+
+  @Post('me/read')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  @ApiOperation({
+    summary: 'Marquer une annonce comme lue',
+    description: 'Enregistre que l\'utilisateur connecté a lu l\'annonce. Idempotent (plusieurs appels = un seul enregistrement).',
+  })
+  @ApiNoContentResponse()
+  @ApiNotFoundResponse()
+  @ApiUnauthorizedResponse()
+  async markAsRead(
+    @Request() req: AuthRequest,
+    @Body() dto: MarkReadDto,
+  ): Promise<void> {
+    await this.service.markAsRead(req.user.id, dto.announcementId);
   }
 }

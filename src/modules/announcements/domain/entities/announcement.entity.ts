@@ -1,6 +1,6 @@
 import {
   Entity, PrimaryGeneratedColumn, Column,
-  CreateDateColumn, UpdateDateColumn, Index,
+  CreateDateColumn, UpdateDateColumn, DeleteDateColumn, Index,
 } from 'typeorm';
 
 export enum AnnouncementMediaType {
@@ -18,6 +18,7 @@ export enum AnnouncementType {
 
 export enum AnnouncementStatus {
   DRAFT      = 'draft',       // Brouillon (non visible)
+  SCHEDULED  = 'scheduled',   // Publication planifiée (en attente du cron)
   PUBLISHED  = 'published',   // Visible, en cours
   ARCHIVED   = 'archived',    // Expirée ou retirée
 }
@@ -33,7 +34,9 @@ export enum AnnouncementScope {
  * Représente une annonce système créée par un admin global ou un admin ville.
  *
  * Cycle de vie :
+ *   DRAFT → SCHEDULED (publication différée, en attente du cron)
  *   DRAFT → PUBLISHED (déclenche broadcast push + in_app + websocket)
+ *   SCHEDULED → PUBLISHED (déclenché automatiquement par le cron)
  *   PUBLISHED → ARCHIVED (manuel ou automatique via expiresAt)
  *
  * Scoping :
@@ -45,6 +48,7 @@ export enum AnnouncementScope {
 @Index('idx_ann_city_status',    ['cityId', 'status'])
 @Index('idx_ann_published_at',   ['publishedAt'])
 @Index('idx_ann_expires_at',     ['expiresAt'])
+@Index('idx_ann_scheduled_at',   ['scheduledAt'])
 export class SystemAnnouncement {
   @PrimaryGeneratedColumn('uuid')
   id: string;
@@ -147,9 +151,21 @@ export class SystemAnnouncement {
   @Column({ type: 'uuid', nullable: true, name: 'broadcast_id' })
   broadcastId: string | null;
 
+  /**
+   * Date de publication planifiée.
+   * null = publication immédiate (comportement par défaut).
+   * Si défini + status=DRAFT → le cron publie automatiquement à cette date.
+   */
+  @Column({ type: 'timestamptz', nullable: true, name: 'scheduled_at' })
+  scheduledAt: Date | null;
+
   @CreateDateColumn({ name: 'created_at' })
   createdAt: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
   updatedAt: Date;
+
+  /** Soft-delete : non null = annonce supprimée logiquement */
+  @DeleteDateColumn({ name: 'deleted_at', nullable: true })
+  deletedAt: Date | null;
 }

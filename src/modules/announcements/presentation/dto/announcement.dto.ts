@@ -128,6 +128,17 @@ export class CreateAnnouncementDto {
   @IsOptional()
   @IsDateString()
   expiresAt?: string;
+
+  @ApiPropertyOptional({
+    format: 'date-time',
+    description:
+      'Date de publication planifiée ISO8601. ' +
+      'Si fournie, crée/garde le statut `scheduled` et publie automatiquement via le cron. ' +
+      'null = publication immédiate lors du `publish`.',
+  })
+  @IsOptional()
+  @IsDateString()
+  scheduledAt?: string;
 }
 
 // ─── Modification ────────────────────────────────────────────────────────────
@@ -166,4 +177,40 @@ export class AnnouncementFilterDto {
   @IsOptional()
   @Type(() => Number)
   limit?: number;
+
+  /**
+   * Pagination cursor : UUID de la dernière annonce de la page précédente.
+   * Si fourni, remplace page/skip par une pagination basée sur (publishedAt, id).
+   */
+  @ApiPropertyOptional({
+    description: 'Cursor UUID de la dernière annonce reçue (pagination cursor-based)',
+    format: 'uuid',
+  })
+  @IsOptional()
+  @IsUUID()
+  cursor?: string;
+}
+
+// ─── Mark As Read ─────────────────────────────────────────────────────────────
+
+export class MarkReadDto {
+  @ApiProperty({ format: 'uuid', description: "UUID de l'annonce lue" })
+  @IsUUID()
+  announcementId: string;
+}
+
+// ─── Estimation audience ──────────────────────────────────────────────────────
+
+export class AudienceEstimateResponseDto {
+  @ApiProperty({ description: 'Nombre estimé d\'utilisateurs ciblés' })
+  estimatedUsers: number;
+
+  @ApiProperty()
+  scope: string;
+
+  @ApiProperty({ nullable: true })
+  cityId: string | null;
+
+  @ApiProperty({ nullable: true })
+  targetRoles: string[] | null;
 }
