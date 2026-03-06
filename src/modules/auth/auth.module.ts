@@ -18,8 +18,7 @@ import { RedisModule } from '../../infrastructure/redis/redis.module';
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         secret: config.get<string>('JWT_SECRET'),
-        // Access token : 15 min en prod, configurable
-        signOptions: { expiresIn: config.get<string>('JWT_EXPIRES_IN', '15m') as string },
+         signOptions: { expiresIn: config.get('JWT_EXPIRES_IN', '15m') as any },
       }),
       inject: [ConfigService],
     }),

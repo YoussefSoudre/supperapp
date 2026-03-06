@@ -86,7 +86,7 @@ export class Delivery {
   currency: string;
 
   /** Code de confirmation à la livraison */
-  @Column({ length: 6, nullable: true, name: 'confirmation_code' })
+  @Column({ type: 'varchar', length: 6, nullable: true, name: 'confirmation_code' })
   confirmationCode: string | null;
 
   @Column({ type: 'uuid', nullable: true, name: 'payment_id' })

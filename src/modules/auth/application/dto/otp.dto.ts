@@ -1,21 +1,25 @@
-import { IsPhoneNumber, IsString, Length } from 'class-validator';
+import { IsString, Length, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 
 export class SendOtpDto {
   @ApiProperty({
-    example: '+22670000000',
-    description: 'Numéro de téléphone au format international (E.164) — recevra le SMS',
+    example: '+22675486914',
+    description: '8 chiffres locaux (ex: 75486914) OU format E.164 (ex: +22675486914)',
   })
-  @IsPhoneNumber()
+  @Matches(/^(\+226\d{8}|\d{8})$/, {
+    message: 'phone must be 8 local digits (e.g. 75486914) or E.164 format +226XXXXXXXX',
+  })
   phone: string;
 }
 
 export class VerifyOtpDto {
   @ApiProperty({
-    example: '+22670000000',
-    description: 'Même numéro utilisé lors de l\'envoi OTP',
+    example: '+22675486914',
+    description: '8 chiffres locaux (ex: 75486914) OU format E.164 (ex: +22675486914)',
   })
-  @IsPhoneNumber()
+  @Matches(/^(\+226\d{8}|\d{8})$/, {
+    message: 'phone must be 8 local digits (e.g. 75486914) or E.164 format +226XXXXXXXX',
+  })
   phone: string;
 
   @ApiProperty({

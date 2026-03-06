@@ -21,6 +21,40 @@ export class PaginatedMetaDto {
   totalPages: number;
 }
 
+// ─── Users ─────────────────────────────────────────────────────────────────
+
+export class UserPublicDto {
+  @ApiProperty({ example: 'uuid-v4', description: 'Identifiant unique' })
+  id: string;
+
+  @ApiProperty({ example: 'Youssef', description: 'Prénom' })
+  firstName: string;
+
+  @ApiProperty({ example: 'Kaboré', description: 'Nom de famille' })
+  lastName: string;
+
+  @ApiProperty({ example: '+22670000000' })
+  phone: string;
+
+  @ApiProperty({ example: 'user@example.com', nullable: true })
+  email: string | null;
+
+  @ApiProperty({ example: 'active', enum: ['active', 'inactive', 'suspended', 'pending_kyc'] })
+  status: string;
+
+  @ApiProperty({ example: 'YOUS-K3P2X1', description: 'Code de parrainage unique' })
+  referralCode: string;
+
+  @ApiProperty({ example: false })
+  phoneVerified: boolean;
+
+  @ApiProperty({ example: false })
+  kycVerified: boolean;
+
+  @ApiProperty({ example: '2026-01-15T10:30:00Z' })
+  createdAt: Date;
+}
+
 // ─── Auth ────────────────────────────────────────────────────────────────────
 
 export class AuthTokensDto {
@@ -54,40 +88,6 @@ export class OtpResponseDto {
 export class OtpVerifyResponseDto {
   @ApiProperty({ example: true })
   verified: boolean;
-}
-
-// ─── Users ───────────────────────────────────────────────────────────────────
-
-export class UserPublicDto {
-  @ApiProperty({ example: 'uuid-v4', description: 'Identifiant unique' })
-  id: string;
-
-  @ApiProperty({ example: 'Youssef', description: 'Prénom' })
-  firstName: string;
-
-  @ApiProperty({ example: 'Kaboré', description: 'Nom de famille' })
-  lastName: string;
-
-  @ApiProperty({ example: '+22670000000' })
-  phone: string;
-
-  @ApiProperty({ example: 'user@example.com', nullable: true })
-  email: string | null;
-
-  @ApiProperty({ example: 'active', enum: ['active', 'inactive', 'suspended', 'pending_kyc'] })
-  status: string;
-
-  @ApiProperty({ example: 'YOUS-K3P2X1', description: 'Code de parrainage unique' })
-  referralCode: string;
-
-  @ApiProperty({ example: false })
-  phoneVerified: boolean;
-
-  @ApiProperty({ example: false })
-  kycVerified: boolean;
-
-  @ApiProperty({ example: '2026-01-15T10:30:00Z' })
-  createdAt: Date;
 }
 
 // ─── Rides ───────────────────────────────────────────────────────────────────

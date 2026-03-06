@@ -62,15 +62,15 @@ export class ReferralUsage {
   // ── Anti-abus ─────────────────────────────────────────────────────────────
 
   /** Empreinte device filleul à l'inscription (hash SHA256 de user-agent + platform) */
-  @Column({ length: 64, nullable: true, name: 'device_fingerprint' })
+  @Column({ type: 'varchar', length: 64, nullable: true, name: 'device_fingerprint' })
   deviceFingerprint: string | null;
 
   /** IPv4 ou IPv6 d'inscription du filleul */
-  @Column({ length: 45, nullable: true, name: 'registration_ip' })
+  @Column({ type: 'varchar', length: 45, nullable: true, name: 'registration_ip' })
   registrationIp: string | null;
 
   /** Préfixe téléphonique /24 subnet pour détection SIM farm (226XXXXXXX → 226XXX) */
-  @Column({ length: 20, nullable: true, name: 'phone_prefix' })
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'phone_prefix' })
   phonePrefix: string | null;
 
   // ── Timestamps ─────────────────────────────────────────────────────────────

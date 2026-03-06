@@ -56,7 +56,7 @@ export class ReferralProgram {
    * Services auxquels ce programme s'applique.
    * Ex: ['ride', 'food', 'delivery'] = tous les services
    */
-  @Column({ type: 'jsonb', default: "['ride']", name: 'service_types' })
+  @Column({ type: 'jsonb', default: () => `'["ride"]'`, name: 'service_types' })
   serviceTypes: ReferralServiceType[];
 
   // ── Récompense parrain ────────────────────────────────────────────────────

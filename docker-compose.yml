@@ -24,6 +24,7 @@ services:
       JWT_SECRET: superapp-jwt-secret-change-in-production-min-32-chars
       JWT_EXPIRES_IN: 7d
       ALLOWED_ORIGINS: http://localhost:3001,http://localhost:3002
+      BOOTSTRAP_SECRET: superapp-bootstrap-secret-2026
       # ── Notifications — Channel Providers (configurer en prod) ─────────────
       SMS_PROVIDER: twilio           # twilio | orange
       TWILIO_ACCOUNT_SID: ""         # TODO: à renseigner

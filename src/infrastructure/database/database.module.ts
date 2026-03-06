@@ -15,7 +15,7 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         database: config.get<string>('DB_NAME', 'superapp_bf'),
         entities: [__dirname + '/../../modules/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        synchronize: false,          // toujours false en prod
+        synchronize: true,           // TODO: remettre false après création des tables
         migrationsRun: true,
         logging: config.get('NODE_ENV') === 'development',
         extra: {

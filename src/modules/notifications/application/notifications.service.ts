@@ -14,9 +14,12 @@ import {
   DomainEvents,
   RideCompletedPayload,
   UserRegisteredPayload,
+  UserPhoneVerifiedPayload,
   PaymentSuccessPayload,
   RideModifiedPayload,
   ReferralRewardGrantedPayload,
+  UserKycSubmittedPayload,
+  UserKycReviewedPayload,
 } from '../../../shared/events/domain-events.constants';
 import { NotificationQueueService } from './notification-queue.service';
 import { SendNotificationInput } from '../domain/interfaces/notification-job.interface';
@@ -82,7 +85,31 @@ export class NotificationsService {
   // ─────────────────────────────────────────────────────────────────────────────
   // Domain Event Handlers
   // ─────────────────────────────────────────────────────────────────────────────
+  // ─── Auth Events ──────────────────────────────────────────────────
 
+  @OnEvent(DomainEvents.USER_PHONE_VERIFIED)
+  async onUserPhoneVerified(payload: UserPhoneVerifiedPayload): Promise<void> {
+    // Push notification
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.PUSH,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.HIGH,
+      title:    '🎉 Account verified!',
+      body:     `Welcome to Superapp, ${payload.firstName}! Your account is now active.`,
+      data:     { screen: 'Home' },
+    });
+    // In-App notification
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.IN_APP,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.NORMAL,
+      title:    'Welcome to Superapp 🚀',
+      body:     `Hi ${payload.firstName}! We’re glad to have you on board. Explore rides, food delivery, and more.`,
+      data:     { screen: 'Home' },
+    });
+  }
   // ─── Ride Events ─────────────────────────────────────────────────────────────
 
   @OnEvent(DomainEvents.RIDE_ACCEPTED)
@@ -552,5 +579,76 @@ export class NotificationsService {
 
     return stats;
   }
-}
 
+  // ─── User KYC Events ──────────────────────────────────────────────────────
+
+  @OnEvent(DomainEvents.USER_KYC_SUBMITTED)
+  async onUserKycSubmitted(payload: UserKycSubmittedPayload): Promise<void> {
+    // Confirmer au client que son dossier a bien été reçu
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.PUSH,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.NORMAL,
+      title:    '📋 Dossier KYC reçu',
+      body:     'Votre dossier KYC a été soumis avec succès. Nous le traiterons dans les meilleurs délais.',
+      data:     { screen: 'KycStatus' },
+    });
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.IN_APP,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.NORMAL,
+      title:    '📋 Dossier KYC reçu',
+      body:     'Votre dossier KYC est en cours d\'examen.',
+      data:     { screen: 'KycStatus' },
+    });
+  }
+
+  @OnEvent(DomainEvents.USER_KYC_APPROVED)
+  async onUserKycApproved(payload: UserKycReviewedPayload): Promise<void> {
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.PUSH,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.HIGH,
+      title:    '✅ KYC validé !',
+      body:     'Votre identité a été vérifiée avec succès. Vous bénéficiez maintenant de tous les avantages de l\'application.',
+      data:     { screen: 'Profile' },
+    });
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.IN_APP,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.HIGH,
+      title:    '✅ KYC validé',
+      body:     'Votre identité a été vérifiée.',
+      data:     { screen: 'Profile' },
+    });
+  }
+
+  @OnEvent(DomainEvents.USER_KYC_REJECTED)
+  async onUserKycRejected(payload: UserKycReviewedPayload): Promise<void> {
+    const reason = payload.rejectionReason
+      ? ` Motif : ${payload.rejectionReason}`
+      : '';
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.PUSH,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.HIGH,
+      title:    '❌ KYC refusé',
+      body:     `Votre dossier KYC a été refusé.${reason} Vous pouvez soumettre à nouveau.`,
+      data:     { screen: 'KycStatus', rejectionReason: payload.rejectionReason },
+    });
+    await this.send({
+      userId:   payload.userId,
+      channel:  NotificationChannel.IN_APP,
+      category: NotificationCategory.SYSTEM,
+      priority: NotificationPriority.HIGH,
+      title:    '❌ KYC refusé',
+      body:     `Dossier refusé.${reason}`,
+      data:     { screen: 'KycStatus' },
+    });
+  }
+}

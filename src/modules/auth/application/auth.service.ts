@@ -5,16 +5,24 @@ import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { User, UserStatus } from '../../users/domain/entities/user.entity';
 import { EventBusService } from '../../../shared/events/event-bus.service';
-import { DomainEvents, UserRegisteredPayload } from '../../../shared/events/domain-events.constants';
+import { DomainEvents, UserRegisteredPayload, UserPhoneVerifiedPayload } from '../../../shared/events/domain-events.constants';
 import { LoginDto } from './dto/login.dto';
 import { RegisterDto } from './dto/register.dto';
 import { TokenService } from './services/token.service';
+import { OtpService } from './services/otp.service';
 
 export interface AuthTokens {
   access_token:  string;
   refresh_token: string;
   expires_in:    number;
   user:          Partial<User>;
+  message?:      string;
+  welcome?:      string;
+}
+
+export interface PendingVerificationResponse {
+  message: string;
+  phone: string;
 }
 
 @Injectable()
@@ -24,9 +32,15 @@ export class AuthService {
     private readonly userRepo: Repository<User>,
     private readonly tokenService: TokenService,
     private readonly eventBus: EventBusService,
+    private readonly otpService: OtpService,
   ) {}
 
-  async register(dto: RegisterDto, cityId: string): Promise<AuthTokens> {
+  private normalizePhone(phone: string): string {
+    return phone.startsWith('+') ? phone : `+226${phone}`;
+  }
+
+  async register(dto: RegisterDto, cityId: string): Promise<PendingVerificationResponse> {
+    dto.phone = this.normalizePhone(dto.phone);
     const existing = await this.userRepo.findOne({ where: { phone: dto.phone } });
     if (existing) throw new ConflictException('Phone number already registered');
 
@@ -42,7 +56,7 @@ export class AuthService {
       cityId,
       referralCode,
       referredById: null,
-      status: UserStatus.ACTIVE,
+      status: UserStatus.INACTIVE,   // compte inactif jusqu'à vérification OTP
       phoneVerified: false,
       kycVerified: false,
       avatarUrl: null,
@@ -63,12 +77,17 @@ export class AuthService {
     };
     await this.eventBus.emit(DomainEvents.USER_REGISTERED, payload);
 
-    const tokens = await this.tokenService.issueTokenPair(saved.id, saved.phone, cityId);
-    const { passwordHash: _, ...userWithoutPassword } = saved;
-    return { ...tokens, user: userWithoutPassword };
+    // Envoi automatique de l'OTP dès l'inscription
+    await this.otpService.sendOtp(saved.phone);
+
+    return {
+      message: 'Account created. Please verify your phone number with the OTP sent by SMS.',
+      phone: saved.phone,
+    };
   }
 
   async login(dto: LoginDto): Promise<AuthTokens> {
+    dto.phone = this.normalizePhone(dto.phone);
     const user = await this.userRepo
       .createQueryBuilder('user')
       .addSelect('user.passwordHash')
@@ -77,6 +96,12 @@ export class AuthService {
 
     if (!user || !(await bcrypt.compare(dto.password, user.passwordHash))) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    if (user.status === UserStatus.INACTIVE) {
+      throw new UnauthorizedException(
+        'Phone number not verified. Please verify your phone with the OTP sent during registration.',
+      );
     }
 
     if (user.status === UserStatus.SUSPENDED) {
@@ -98,6 +123,44 @@ export class AuthService {
 
   async logoutAll(userId: string): Promise<void> {
     await this.tokenService.revokeAll(userId);
+  }
+
+  /**
+   * Vérifie l'OTP, active le compte et retourne les tokens JWT.
+   * Appelé depuis POST /auth/otp/verify.
+   */
+  async verifyPhone(phone: string, code: string): Promise<AuthTokens> {
+    const normalizedPhone = this.normalizePhone(phone);
+
+    await this.otpService.verifyOtp(normalizedPhone, code);
+
+    const user = await this.userRepo.findOne({ where: { phone: normalizedPhone } });
+    if (!user) throw new UnauthorizedException('User not found');
+
+    // Activer le compte
+    user.phoneVerified = true;
+    user.status = UserStatus.ACTIVE;
+    await this.userRepo.save(user);
+
+    // Émettre l’événement — le module Notifications enverra la notification de bienvenue
+    const verifiedPayload: UserPhoneVerifiedPayload = {
+      version: 1,
+      userId: user.id,
+      phone: user.phone,
+      firstName: user.firstName,
+      cityId: user.cityId,
+      timestamp: new Date(),
+    };
+    await this.eventBus.emit(DomainEvents.USER_PHONE_VERIFIED, verifiedPayload);
+
+    const tokens = await this.tokenService.issueTokenPair(user.id, user.phone, user.cityId);
+    const { passwordHash: _, ...userWithoutPassword } = user;
+    return {
+      ...tokens,
+      user: userWithoutPassword,
+      message: 'Your account has been successfully verified.',
+      welcome: `Welcome to Superapp, ${user.firstName}! We're excited to have you on board. 🎉`,
+    };
   }
 
   private generateReferralCode(firstName: string): string {

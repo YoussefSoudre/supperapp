@@ -35,7 +35,6 @@ import {
   ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
-import { PermissionGuard } from '../../../shared/guards/permission.guard';
 import { RequirePermission } from '../../../shared/decorators/require-permission.decorator';
 import { PERM_ANNOUNCEMENTS_MANAGE, PERM_ANNOUNCEMENTS_READ } from '../../admin/domain/constants/permissions.constants';
 import { AnnouncementsService } from '../application/announcements.service';
@@ -136,7 +135,6 @@ export class AnnouncementsController {
    * via les champs `mediaUrl`, `mediaType`, `mediaThumbnailUrl`.
    */
   @Post('admin/media')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @UseInterceptors(
     FileInterceptor('file', {
@@ -214,7 +212,6 @@ export class AnnouncementsController {
   }
 
   @Post('admin')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @ApiOperation({
     summary: '[Admin] Créer une annonce (brouillon)',
@@ -247,7 +244,6 @@ export class AnnouncementsController {
   }
 
   @Get('admin/list')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_READ)
   @ApiOperation({
     summary: '[Admin] Lister toutes les annonces (avec filtres)',
@@ -273,7 +269,6 @@ export class AnnouncementsController {
   }
 
   @Patch('admin/:id')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({
@@ -293,7 +288,6 @@ export class AnnouncementsController {
   }
 
   @Post('admin/:id/publish')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({
@@ -327,7 +321,6 @@ export class AnnouncementsController {
   }
 
   @Post('admin/:id/archive')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
@@ -344,7 +337,6 @@ export class AnnouncementsController {
   }
 
   @Delete('admin/:id')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @HttpCode(HttpStatus.NO_CONTENT)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
@@ -363,7 +355,6 @@ export class AnnouncementsController {
   // ─── Nouveaux endpoints v2 ────────────────────────────────────────────────
 
   @Post('admin/:id/schedule')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({
@@ -387,7 +378,6 @@ export class AnnouncementsController {
   }
 
   @Post('admin/:id/republish')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @HttpCode(HttpStatus.OK)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
@@ -407,7 +397,6 @@ export class AnnouncementsController {
   }
 
   @Post('admin/:id/duplicate')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_MANAGE)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce source' })
   @ApiOperation({
@@ -426,7 +415,6 @@ export class AnnouncementsController {
   }
 
   @Get('admin/:id/audit')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_READ)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({
@@ -442,7 +430,6 @@ export class AnnouncementsController {
   }
 
   @Get('admin/:id/audience')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_READ)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({
@@ -462,7 +449,6 @@ export class AnnouncementsController {
   }
 
   @Get('admin/:id/reads')
-  @UseGuards(PermissionGuard)
   @RequirePermission(PERM_ANNOUNCEMENTS_READ)
   @ApiParam({ name: 'id', description: 'UUID de l\'annonce' })
   @ApiOperation({ summary: '[Admin] Nombre de lectures', description: 'Retourne le nombre d\'utilisateurs ayant marqué l\'annonce comme lue.' })

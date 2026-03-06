@@ -21,11 +21,16 @@ export class OtpService {
 
   // ─── Génération & envoi ──────────────────────────────────────────────────
 
+  private normalizePhone(phone: string): string {
+    return phone.startsWith('+') ? phone : `+226${phone}`;
+  }
+
   /**
    * Génère un OTP à 6 chiffres, le stocke dans Redis et l'envoie par SMS.
    * Rate limiting : 5 envois max par heure par numéro.
    */
   async sendOtp(phone: string): Promise<{ message: string }> {
+    phone = this.normalizePhone(phone);
     // Vérifier le blocage
     const blocked = await this.redis.get(`${BLOCK_KEY}${phone}`);
     if (blocked) {
@@ -66,6 +71,7 @@ export class OtpService {
    * OTP consommé à usage unique (supprimé après succès).
    */
   async verifyOtp(phone: string, code: string): Promise<boolean> {
+    phone = this.normalizePhone(phone);
     const key  = `${OTP_KEY}${phone}`;
     const data = await this.redis.getJson<{ otp: string; phone: string; attempts: number }>(key);
 

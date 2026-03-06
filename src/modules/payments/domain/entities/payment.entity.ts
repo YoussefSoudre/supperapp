@@ -72,11 +72,11 @@ export class Payment {
   provider: PaymentProvider;
 
   /** Numéro de téléphone mobile money */
-  @Column({ length: 20, nullable: true, name: 'provider_phone' })
+  @Column({ type: 'varchar', length: 20, nullable: true, name: 'provider_phone' })
   providerPhone: string | null;
 
   /** Transaction ID retourné par l'opérateur */
-  @Column({ length: 255, nullable: true, name: 'provider_tx_id' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'provider_tx_id' })
   providerTxId: string | null;
 
   /** Réponse brute de l'opérateur (audit) */

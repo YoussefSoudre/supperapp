@@ -50,7 +50,7 @@ export class NotificationDeliveryLog {
   statusCode: number | null;
 
   /** Message ID retourné par le provider (FCM message ID, Twilio SID, etc.) */
-  @Column({ length: 255, nullable: true, name: 'provider_message_id' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'provider_message_id' })
   providerMessageId: string | null;
 
   /** Détail de l'erreur si status = FAILURE */

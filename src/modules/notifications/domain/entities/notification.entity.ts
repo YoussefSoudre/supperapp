@@ -93,7 +93,7 @@ export class Notification {
   cityId: string | null;
 
   /** Rôle ciblé : driver | user | admin (null = tous) */
-  @Column({ length: 50, nullable: true, name: 'target_role' })
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'target_role' })
   targetRole: string | null;
 
   /** Identifiant du device token FCM / Expo push token */
@@ -101,15 +101,15 @@ export class Notification {
   deviceToken: string | null;
 
   /** Email du destinataire (cache, évite join users) */
-  @Column({ length: 255, nullable: true, name: 'recipient_email' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'recipient_email' })
   recipientEmail: string | null;
 
   /** Numéro de téléphone E.164 (ex : +22670000000) */
-  @Column({ length: 25, nullable: true, name: 'recipient_phone' })
+  @Column({ type: 'varchar', length: 25, nullable: true, name: 'recipient_phone' })
   recipientPhone: string | null;
 
   /** ID retourné par FCM / Twilio / SendGrid */
-  @Column({ length: 255, nullable: true, name: 'provider_message_id' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'provider_message_id' })
   providerMessageId: string | null;
 
   /** Nombre de tentatives déjà effectuées */
@@ -141,7 +141,7 @@ export class Notification {
   failureReason: string | null;
 
   /** ID du job BullMQ (pour annulation si scheduled) */
-  @Column({ length: 255, nullable: true, name: 'queue_job_id' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'queue_job_id' })
   queueJobId: string | null;
 
   @CreateDateColumn({ name: 'created_at' })

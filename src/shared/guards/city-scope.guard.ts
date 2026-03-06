@@ -16,7 +16,7 @@ import { IS_PUBLIC_KEY } from '../decorators/public.decorator';
  * S'applique uniquement aux routes décorées avec @CityScoped().
  *
  * Logique :
- *  1. Si l'user a un rôle GLOBAL (super_admin, finance, analyste) → accès libre.
+ *  1. Si l'user a un rôle GLOBAL (super_admin uniquement) → accès libre.
  *  2. Sinon, le cityId de la route (params.cityId || body.cityId) doit faire partie
  *     des villes pour lesquelles l'user a un rôle CITY actif.
  *

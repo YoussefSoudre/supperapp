@@ -21,8 +21,8 @@ export enum RoleScope {
  *   city_admin   → scope CITY   — gestion complète d'une ville
  *   manager      → scope CITY   — opérations quotidiennes
  *   support      → scope CITY   — lecture + actions correctives
- *   finance      → scope GLOBAL — lecture financière + exports
- *   analyste     → scope GLOBAL — lecture seule analytics
+ *   finance      → scope CITY   — lecture financière + exports (scopé par ville)
+ *   analyste     → scope CITY   — lecture seule analytics (scopé par ville)
  *
  * Extensibilité : créer un Role en DB + assigner des RolePermissions.
  * Aucune modification de code requise.
@@ -48,7 +48,7 @@ export class Role {
   description: string | null;
 
   /** Couleur hex pour le dashboard (ex: #E53E3E) */
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   color: string | null;
 
   /** Rôle système : non supprimable, non renommable */

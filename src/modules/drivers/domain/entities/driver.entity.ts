@@ -47,7 +47,7 @@ export class Driver {
   @Column({ length: 50, name: 'vehicle_plate' })
   vehiclePlate: string;
 
-  @Column({ length: 100, name: 'vehicle_model', nullable: true })
+  @Column({ type: 'varchar', length: 100, name: 'vehicle_model', nullable: true })
   vehicleModel: string | null;
 
   /** Dernière position GPS connue */

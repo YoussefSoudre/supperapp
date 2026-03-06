@@ -35,7 +35,7 @@ export class User {
   @Column({ length: 20, unique: true })
   phone: string;
 
-  @Column({ length: 255, nullable: true, unique: true })
+  @Column({ type: 'varchar', length: 255, nullable: true, unique: true })
   email: string | null;
 
   @Column({ length: 255, select: false }) // jamais retourné en SELECT *
@@ -56,11 +56,11 @@ export class User {
   @Column({ type: 'uuid', nullable: true, name: 'referred_by_id' })
   referredById: string | null;
 
-  @Column({ length: 255, nullable: true, name: 'avatar_url' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'avatar_url' })
   avatarUrl: string | null;
 
   /** Token FCM pour push notifications */
-  @Column({ length: 500, nullable: true, name: 'fcm_token' })
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'fcm_token' })
   fcmToken: string | null;
 
   @Column({ type: 'boolean', default: false, name: 'phone_verified' })

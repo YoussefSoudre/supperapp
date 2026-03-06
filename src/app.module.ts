@@ -47,7 +47,6 @@ import { CityScopeGuard } from './shared/guards/city-scope.guard';
       envFilePath: ['.env.local', '.env'],
       validate: validateEnv,
     }),
-
     // ─── Rate Limiting (Redis-backed, partagé multi-instances) ────────────────
     ThrottlerModule.forRootAsync({
       inject:     [RedisThrottlerStorage],

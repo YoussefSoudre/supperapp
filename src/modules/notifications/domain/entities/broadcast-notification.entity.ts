@@ -35,7 +35,7 @@ export class BroadcastNotification {
   targetCityId: string | null;
 
   /** Rôle ciblé : driver | user | admin (null = tous) */
-  @Column({ length: 50, nullable: true, name: 'target_role' })
+  @Column({ type: 'varchar', length: 50, nullable: true, name: 'target_role' })
   targetRole: string | null;
 
   @Column({ length: 250 })

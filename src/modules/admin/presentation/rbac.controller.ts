@@ -3,6 +3,7 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
   HttpCode,
   HttpStatus,
   Param,
@@ -10,16 +11,22 @@ import {
   Put,
   Query,
   Request,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
-import { ApiBearerAuth, ApiOperation, ApiOkResponse, ApiCreatedResponse, ApiNoContentResponse, ApiTags, ApiParam, ApiUnauthorizedResponse, ApiForbiddenResponse } from '@nestjs/swagger';
+import { ApiBearerAuth, ApiOperation, ApiOkResponse, ApiCreatedResponse, ApiNoContentResponse, ApiTags, ApiParam, ApiUnauthorizedResponse, ApiForbiddenResponse, ApiHeader } from '@nestjs/swagger';
 import { Request as ExpressRequest } from 'express';
+import { ConfigService } from '@nestjs/config';
+import { InjectRepository } from '@nestjs/typeorm';
+import { Repository } from 'typeorm';
 import { RbacService } from '../application/rbac.service';
 import { AuditService } from '../application/audit.service';
 import { RoleScope } from '../domain/entities/role.entity';
+import { UserRole } from '../domain/entities/user-role.entity';
 import { JwtAuthGuard } from '../../../shared/guards/jwt-auth.guard';
 import { PermissionGuard } from '../../../shared/guards/permission.guard';
 import { RequirePermission } from '../../../shared/decorators/require-permission.decorator';
+import { Public } from '../../../shared/decorators/public.decorator';
 import {
   AddPermissionsToRoleDto,
   AssignRoleDto,
@@ -37,7 +44,60 @@ export class RbacController {
   constructor(
     private readonly rbacService: RbacService,
     private readonly auditService: AuditService,
+    private readonly configService: ConfigService,
+    @InjectRepository(UserRole)
+    private readonly userRoleRepo: Repository<UserRole>,
   ) {}
+
+  // ─── Bootstrap (premier super_admin) ────────────────────────────────────
+
+  /**
+   * Endpoint de bootstrap : assigne le rôle super_admin à un utilisateur.
+   * Protégé par le header `x-bootstrap-secret` (valeur = BOOTSTRAP_SECRET dans .env).
+   * Fonctionne uniquement s'il n'existe aucun super_admin actif en base.
+   */
+  @Public()
+  @Post('bootstrap')
+  @HttpCode(HttpStatus.CREATED)
+  @ApiOperation({
+    summary: '[Bootstrap] Assigner le premier super_admin',
+    description:
+      'Endpoint de bootstrap initial. Protégé par le header `x-bootstrap-secret`.\n\n' +
+      'Ne fonctionne que si aucun super_admin actif n\'existe déjà en base.\n\n' +
+      'Définir `BOOTSTRAP_SECRET` dans le fichier `.env` / `docker-compose.yml`.',
+  })
+  @ApiHeader({ name: 'x-bootstrap-secret', description: 'Clé secrète de bootstrap (BOOTSTRAP_SECRET env)', required: true })
+  @ApiCreatedResponse({ schema: { example: { userId: 'uuid', roleId: 'uuid', cityId: null, grantedAt: '2026-01-01T00:00:00Z' } } })
+  async bootstrapSuperAdmin(
+    @Headers('x-bootstrap-secret') secret: string,
+    @Body('userId') userId: string,
+  ) {
+    const expected = this.configService.get<string>('BOOTSTRAP_SECRET');
+    if (!expected || secret !== expected) {
+      throw new UnauthorizedException('Invalid bootstrap secret');
+    }
+
+    // Vérifier qu'il n'existe pas déjà un super_admin actif
+    const existing = await this.userRoleRepo
+      .createQueryBuilder('ur')
+      .innerJoin('ur.role', 'r')
+      .where('r.slug = :slug', { slug: 'super_admin' })
+      .andWhere('ur.isActive = true')
+      .getOne();
+
+    if (existing) {
+      throw new UnauthorizedException(
+        'A super_admin already exists. Use the standard RBAC endpoint to assign roles.',
+      );
+    }
+
+    const role = await this.rbacService.listRoles()
+      .then((roles: any[]) => roles.find((r: any) => r.slug === 'super_admin'));
+
+    if (!role) throw new UnauthorizedException('super_admin role not found. Run seed-rbac.sql first.');
+
+    return this.rbacService.assignRole(userId, role.id, userId, { reason: 'Bootstrap initial super_admin' });
+  }
 
   // ─── Rôles ──────────────────────────────────────────────────────────────
 

@@ -28,11 +28,13 @@ export class AuthController {
   @Public()
   @UseGuards(BruteForceGuard)
   @Post('register')
+  @HttpCode(HttpStatus.CREATED)
   @ApiOperation({
     summary: 'Créer un compte utilisateur',
     description:
-      'Crée un nouvel utilisateur, génère automatiquement un `referralCode` unique (ex: `YOUS-K3P2X1`), ' +
-      'crée un wallet XOF vide et émet l\'event `user.registered`.\n\n' +
+      'Crée un nouvel utilisateur avec le statut **inactif**, génère un `referralCode` unique ' +
+      'et envoie automatiquement un **OTP par SMS** sur le numéro fourni.\n\n' +
+      'Le compte reste inactif jusqu\'à la vérification OTP via `POST /auth/otp/verify`.\n\n' +
       '> `cityId` est passé en query param — obligatoire pour localiser l\'utilisateur.',
   })
   @ApiQuery({
@@ -41,7 +43,10 @@ export class AuthController {
     example: 'uuid-v4-city-ouaga',
     required: true,
   })
-  @ApiCreatedResponse({ type: AuthTokensDto, description: 'Compte créé — tokens retournés directement' })
+  @ApiCreatedResponse({
+    description: 'Compte créé — OTP envoyé par SMS, en attente de vérification',
+    schema: { example: { message: 'Account created. Please verify your phone number with the OTP sent by SMS.', phone: '+22655047747' } },
+  })
   @ApiBadRequestResponse({ type: ValidationErrorDto, description: 'Données invalides (téléphone, email…)' })
   register(@Body() dto: RegisterDto, @Query('cityId') cityId: string) {
     return this.authService.register(dto, cityId);
@@ -135,17 +140,17 @@ export class AuthController {
   @Post('otp/verify')
   @HttpCode(HttpStatus.OK)
   @ApiOperation({
-    summary: 'Vérifier le code OTP reçu par SMS',
+    summary: 'Vérifier le code OTP et activer le compte',
     description:
-      'Vérifie le code OTP et le supprime immédiatement (usage unique).\n\n' +
-      'Après validation réussie, marquer `phoneVerified = true` sur le profil utilisateur ' +
-      'via `PATCH /users/me`.',
+      'Vérifie le code OTP reçu par SMS et **active le compte** (`status: active`, `phoneVerified: true`).\n\n' +
+      'Retourne les tokens JWT directement — aucune autre étape n\'est nécessaire.\n\n' +
+      '- Code à usage unique (supprimé après succès)\n' +
+      '- Après 5 tentatives incorrectes → blocage 15 minutes',
   })
-  @ApiOkResponse({ type: OtpVerifyResponseDto, description: 'Code OTP valide' })
+  @ApiOkResponse({ type: AuthTokensDto, description: 'Compte activé — tokens retournés' })
   @ApiUnauthorizedResponse({ type: UnauthorizedDto, description: 'Code OTP invalide ou expiré' })
   @ApiTooManyRequestsResponse({ type: TooManyRequestsDto, description: 'Trop de tentatives — bloqué 15 minutes' })
-  async verifyOtp(@Body() dto: VerifyOtpDto) {
-    await this.otpService.verifyOtp(dto.phone, dto.code);
-    return { verified: true };
+  verifyOtp(@Body() dto: VerifyOtpDto) {
+    return this.authService.verifyPhone(dto.phone, dto.code);
   }
 }

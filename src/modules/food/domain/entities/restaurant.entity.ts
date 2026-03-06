@@ -26,7 +26,7 @@ export class Restaurant {
   slug: string;
 
   /** Catégorie culinaire : Burgers, Africain, Pizza, Sushi, etc. */
-  @Column({ length: 100, nullable: true })
+  @Column({ type: 'varchar', length: 100, nullable: true })
   category: string | null;
 
   @Column({ length: 500, name: 'address' })
@@ -38,7 +38,7 @@ export class Restaurant {
   @Column({ type: 'decimal', precision: 10, scale: 7 })
   lng: number;
 
-  @Column({ length: 20, nullable: true })
+  @Column({ type: 'varchar', length: 20, nullable: true })
   phone: string | null;
 
   @Column({ type: 'decimal', precision: 3, scale: 2, default: 5.0 })

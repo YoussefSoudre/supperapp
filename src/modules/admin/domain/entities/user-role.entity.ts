@@ -13,7 +13,7 @@ import { Role } from './role.entity';
  *   - role.scope = CITY   → cityId DOIT être fourni
  *
  * Un utilisateur peut avoir plusieurs UserRoles :
- *   - Support dans ville A + Analyste (global)
+ *   - Support dans ville A + Analyste dans ville A
  *   - City Admin dans ville A + City Admin dans ville B
  *
  * expiresAt : null = permanent, sinon révocation automatique.

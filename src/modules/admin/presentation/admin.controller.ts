@@ -1,11 +1,13 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Param, UseGuards, Request } from '@nestjs/common';
 import {
   ApiTags, ApiBearerAuth, ApiOperation,
-  ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiUnauthorizedResponse, ApiForbiddenResponse, ApiParam,
+  ApiOkResponse, ApiCreatedResponse, ApiNotFoundResponse, ApiUnauthorizedResponse,
+  ApiForbiddenResponse, ApiBadRequestResponse, ApiParam,
 } from '@nestjs/swagger';
 import { AdminService } from '../application/admin.service';
 import { Roles } from '../../../shared/decorators/roles.decorator';
-import { ForbiddenDto, NotFoundDto, UnauthorizedDto } from '../../../shared/dto/swagger-responses.dto';
+import { ForbiddenDto, NotFoundDto, UnauthorizedDto, ValidationErrorDto } from '../../../shared/dto/swagger-responses.dto';
+import { SendKycInvitationDto } from './dto/send-kyc-invitation.dto';
 
 @ApiTags('Admin')
 @ApiBearerAuth('access-token')
@@ -56,5 +58,35 @@ export class AdminController {
   @ApiForbiddenResponse({ type: ForbiddenDto })
   getUserRoles(@Param('userId') userId: string) {
     return this.adminService.getUserRoles(userId);
+  }
+
+  // ─── KYC Notifications ───────────────────────────────────────────────────
+
+  @Post('kyc/invite')
+  @ApiOperation({
+    summary: '[Admin] Envoyer une invitation KYC aux clients',
+    description:
+      'Envoie une notification personnalisable invitant les clients à soumettre leur KYC.\n\n' +
+      '**Cibles disponibles** :\n' +
+      '- `single_user` → un client précis (requiert `userId`)\n' +
+      '- `all_without_kyc` → tous les clients dont `kycVerified = false`\n' +
+      '- `city` → tous les clients sans KYC d\'une ville spécifique (requiert `cityId`)\n\n' +
+      '**Canaux** : `push` (FCM), `in_app`, `sms`, `email` (défaut: `push + in_app`)\n\n' +
+      'Le `title` et le `body` sont entièrement libres — l\'admin peut personnaliser chaque campagne.',
+  })
+  @ApiOkResponse({
+    schema: {
+      example: { notified: 1243 },
+      description: 'Nombre de clients notifiés',
+    },
+  })
+  @ApiBadRequestResponse({ type: ValidationErrorDto })
+  @ApiUnauthorizedResponse({ type: UnauthorizedDto })
+  @ApiForbiddenResponse({ type: ForbiddenDto })
+  sendKycInvitation(
+    @Body() dto: SendKycInvitationDto,
+    @Request() req: { user: { id: string } },
+  ) {
+    return this.adminService.sendKycInvitation(dto, req.user.id);
   }
 }

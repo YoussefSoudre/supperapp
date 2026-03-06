@@ -8,18 +8,18 @@
 BEGIN;
 
 -- ─── 1. ROLES ─────────────────────────────────────────────────────────────
-INSERT INTO roles (id, name, slug, scope, description, color, "isSystem", "isActive")
+INSERT INTO roles (id, name, slug, scope, description, color, is_system, is_active)
 VALUES
   (gen_random_uuid(), 'Super Admin',  'super_admin', 'global', 'Accès total à la plateforme, toutes villes.',           '#EF4444', true, true),
   (gen_random_uuid(), 'City Admin',   'city_admin',  'city',   'Admin d''une ville : gestion complète.',                 '#F97316', true, true),
   (gen_random_uuid(), 'Manager',      'manager',     'city',   'Opérations quotidiennes d''une ville.',                  '#EAB308', true, true),
   (gen_random_uuid(), 'Support',      'support',     'city',   'Support client : lecture + annulations + remboursements.','#22C55E', true, true),
-  (gen_random_uuid(), 'Finance',      'finance',     'global', 'Comptabilité, rapports financiers, exports.',            '#06B6D4', true, true),
-  (gen_random_uuid(), 'Analyste',     'analyste',    'global', 'Lecture et export analytics, pas d''opérations.',        '#8B5CF6', true, true)
+  (gen_random_uuid(), 'Finance',      'finance',     'city',   'Comptabilité et rapports financiers, scopé par ville.',  '#06B6D4', true, true),
+  (gen_random_uuid(), 'Analyste',     'analyste',    'city',   'Lecture analytics, scopé par ville assignée.',           '#8B5CF6', true, true)
 ON CONFLICT (slug) DO NOTHING;
 
 -- ─── 2. PERMISSIONS ───────────────────────────────────────────────────────
-INSERT INTO permissions (id, slug, resource, action, description, "isActive")
+INSERT INTO permissions (id, slug, resource, action, description, is_active)
 VALUES
   -- Rides
   (gen_random_uuid(), 'rides:read',        'rides',        'read',      'Voir la liste des courses',                   true),
@@ -91,8 +91,8 @@ ON CONFLICT (slug) DO NOTHING;
 WITH r AS (SELECT id, slug FROM roles),
      p AS (SELECT id, slug FROM permissions)
 
-INSERT INTO role_permissions (id, "roleId", "permissionId", "grantedBy")
-SELECT gen_random_uuid(), r.id, p.id, 'system'
+INSERT INTO role_permissions (id, role_id, permission_id, granted_by)
+SELECT gen_random_uuid(), r.id, p.id, NULL
 FROM (VALUES
   -- super_admin  — toutes les permissions
   ('super_admin','rides:read'),        ('super_admin','rides:manage'),
@@ -184,6 +184,6 @@ FROM (VALUES
 ) AS t(role_slug, perm_slug)
 JOIN r ON r.slug = t.role_slug
 JOIN p ON p.slug = t.perm_slug
-ON CONFLICT ("roleId", "permissionId") DO NOTHING;
+ON CONFLICT (role_id, permission_id) DO NOTHING;
 
 COMMIT;

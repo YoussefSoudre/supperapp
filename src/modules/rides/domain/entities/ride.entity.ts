@@ -143,7 +143,7 @@ export class Ride {
   @Column({ type: 'enum', enum: RideCancelledBy, nullable: true, name: 'cancelled_by' })
   cancelledBy: RideCancelledBy | null;
 
-  @Column({ length: 500, nullable: true, name: 'cancellation_reason' })
+  @Column({ type: 'varchar', length: 500, nullable: true, name: 'cancellation_reason' })
   cancellationReason: string | null;
 
   // ─── Paiement ─────────────────────────────────────────────────────────────

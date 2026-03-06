@@ -64,7 +64,7 @@ export class SystemAnnouncement {
   content: string;
 
   /** Texte court affiché dans la notification push (≤ 100 chars) */
-  @Column({ length: 100, name: 'short_description', nullable: true })
+  @Column({ type: 'varchar', length: 100, name: 'short_description', nullable: true })
   shortDescription: string | null;
 
   @Column({

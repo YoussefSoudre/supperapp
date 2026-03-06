@@ -2,11 +2,11 @@ import { NotificationPriority } from '../entities/notification.entity';
 
 // ─── Queue names ─────────────────────────────────────────────────────────────
 export const NOTIFICATION_QUEUES = {
-  PUSH:      'notification:push',
-  SMS:       'notification:sms',
-  EMAIL:     'notification:email',
-  INAPP:     'notification:inapp',
-  WEBSOCKET: 'notification:websocket',
+  PUSH:      'notification-push',
+  SMS:       'notification-sms',
+  EMAIL:     'notification-email',
+  INAPP:     'notification-inapp',
+  WEBSOCKET: 'notification-websocket',
 } as const;
 
 export type NotificationQueueName =

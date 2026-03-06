@@ -40,7 +40,7 @@ export class AuditLog {
    * Rôle actif au moment de l'action (snapshot — ne change pas si le rôle est révoqué).
    * Format : "city_admin" ou "super_admin:global"
    */
-  @Column({ length: 200, nullable: true, name: 'active_roles' })
+  @Column({ type: 'varchar', length: 200, nullable: true, name: 'active_roles' })
   activeRoles: string | null;
 
   /**
@@ -70,13 +70,13 @@ export class AuditLog {
   @Column({ type: 'text', nullable: true, name: 'denial_reason' })
   denialReason: string | null;
 
-  @Column({ length: 45, nullable: true, name: 'ip_address' })
+  @Column({ type: 'varchar', length: 45, nullable: true, name: 'ip_address' })
   ipAddress: string | null;
 
   @Column({ type: 'text', nullable: true, name: 'user_agent' })
   userAgent: string | null;
 
-  @Column({ length: 10, nullable: true, name: 'http_method' })
+  @Column({ type: 'varchar', length: 10, nullable: true, name: 'http_method' })
   httpMethod: string | null;
 
   @Column({ type: 'text', nullable: true, name: 'request_path' })

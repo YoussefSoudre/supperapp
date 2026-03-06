@@ -113,6 +113,13 @@ class EnvironmentVariables {
   @IsString()
   @IsOptional()
   ALLOWED_ORIGINS?: string;
+
+  // ─── Bootstrap ────────────────────────────────────────────────────────────
+
+  /** Clé utilisée pour POST /admin/rbac/bootstrap (premier super_admin) */
+  @IsString()
+  @IsOptional()
+  BOOTSTRAP_SECRET?: string;
 }
 
 /**

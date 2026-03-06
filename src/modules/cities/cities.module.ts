@@ -3,6 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { City } from './domain/entities/city.entity';
 import { CitiesController } from './presentation/cities.controller';
 import { CitiesService } from './application/cities.service';
+import { NotificationsModule } from '../notifications/notifications.module';
 
 /**
  * CitiesModule — Référentiel des villes opérationnelles.
@@ -10,7 +11,10 @@ import { CitiesService } from './application/cities.service';
  * Étendu facilement: ajout countyId pour multi-pays futur.
  */
 @Module({
-  imports: [TypeOrmModule.forFeature([City])],
+  imports: [
+    TypeOrmModule.forFeature([City]),
+    NotificationsModule,
+  ],
   controllers: [CitiesController],
   providers: [CitiesService],
   exports: [CitiesService],

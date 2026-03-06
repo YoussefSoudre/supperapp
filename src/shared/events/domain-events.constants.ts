@@ -6,6 +6,7 @@
 export const DomainEvents = {
   // ─── Auth ───────────────────────────────────────────────
   USER_REGISTERED: 'user.registered',
+  USER_PHONE_VERIFIED: 'user.phone_verified',
   USER_PASSWORD_RESET: 'user.password_reset',
 
   // ─── Rides ──────────────────────────────────────────────
@@ -64,6 +65,11 @@ export const DomainEvents = {
 
   // ─── Rating ──────────────────────────────────────────────────────────────
   RIDE_RATED: 'ride.rated',
+
+  // ─── User KYC ────────────────────────────────────────────────────────────
+  USER_KYC_SUBMITTED: 'user.kyc.submitted',
+  USER_KYC_APPROVED:  'user.kyc.approved',
+  USER_KYC_REJECTED:  'user.kyc.rejected',
 } as const;
 
 export type DomainEventName = (typeof DomainEvents)[keyof typeof DomainEvents];
@@ -100,6 +106,15 @@ export interface UserRegisteredPayload {
   userId: string;
   phone: string;
   referralCode?: string;
+  cityId: string;
+  timestamp: Date;
+}
+
+export interface UserPhoneVerifiedPayload {
+  version: 1;
+  userId: string;
+  phone: string;
+  firstName: string;
   cityId: string;
   timestamp: Date;
 }
@@ -210,5 +225,22 @@ export interface NotificationRequestedPayload {
   body: string;
   data?: Record<string, unknown>;
   channels: ('push' | 'sms' | 'email')[];
+  timestamp: Date;
+}
+
+export interface UserKycSubmittedPayload {
+  version: 1;
+  userId: string;
+  kycId: string;
+  timestamp: Date;
+}
+
+export interface UserKycReviewedPayload {
+  version: 1;
+  userId: string;
+  kycId: string;
+  decision: 'approved' | 'rejected';
+  rejectionReason?: string;
+  reviewedBy: string;
   timestamp: Date;
 }

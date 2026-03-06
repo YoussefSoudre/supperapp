@@ -100,7 +100,7 @@ export class ReferralRewardLog {
   })
   status: RewardLogStatus;
 
-  @Column({ length: 255, nullable: true, name: 'failure_reason' })
+  @Column({ type: 'varchar', length: 255, nullable: true, name: 'failure_reason' })
   failureReason: string | null;
 
   // ── Idempotence ───────────────────────────────────────────────────────────
