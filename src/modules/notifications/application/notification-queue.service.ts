@@ -1,4 +1,4 @@
-import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit, Optional } from '@nestjs/common';
 import { InjectQueue } from '@nestjs/bullmq';
 import { Queue } from 'bullmq';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -38,20 +38,20 @@ export class NotificationQueueService implements OnModuleInit {
   private queues: Record<NotificationChannel, Queue>;
 
   constructor(
-    @InjectQueue(NOTIFICATION_QUEUES.PUSH)
-    private readonly pushQueue: Queue,
+    @Optional() @InjectQueue(NOTIFICATION_QUEUES.PUSH)
+    private readonly pushQueue: Queue | undefined,
 
-    @InjectQueue(NOTIFICATION_QUEUES.SMS)
-    private readonly smsQueue: Queue,
+    @Optional() @InjectQueue(NOTIFICATION_QUEUES.SMS)
+    private readonly smsQueue: Queue | undefined,
 
-    @InjectQueue(NOTIFICATION_QUEUES.EMAIL)
-    private readonly emailQueue: Queue,
+    @Optional() @InjectQueue(NOTIFICATION_QUEUES.EMAIL)
+    private readonly emailQueue: Queue | undefined,
 
-    @InjectQueue(NOTIFICATION_QUEUES.INAPP)
-    private readonly inappQueue: Queue,
+    @Optional() @InjectQueue(NOTIFICATION_QUEUES.INAPP)
+    private readonly inappQueue: Queue | undefined,
 
-    @InjectQueue(NOTIFICATION_QUEUES.WEBSOCKET)
-    private readonly wsQueue: Queue,
+    @Optional() @InjectQueue(NOTIFICATION_QUEUES.WEBSOCKET)
+    private readonly wsQueue: Queue | undefined,
 
     @InjectRepository(Notification)
     private readonly notificationRepo: Repository<Notification>,
@@ -61,12 +61,15 @@ export class NotificationQueueService implements OnModuleInit {
 
   onModuleInit(): void {
     this.queues = {
-      [NotificationChannel.PUSH]:      this.pushQueue,
-      [NotificationChannel.SMS]:       this.smsQueue,
-      [NotificationChannel.EMAIL]:     this.emailQueue,
-      [NotificationChannel.IN_APP]:    this.inappQueue,
-      [NotificationChannel.WEBSOCKET]: this.wsQueue,
+      [NotificationChannel.PUSH]:      this.pushQueue!,
+      [NotificationChannel.SMS]:       this.smsQueue!,
+      [NotificationChannel.EMAIL]:     this.emailQueue!,
+      [NotificationChannel.IN_APP]:    this.inappQueue!,
+      [NotificationChannel.WEBSOCKET]: this.wsQueue!,
     };
+    if (!this.pushQueue) {
+      this.logger.warn('Redis not configured — notification queues disabled, enqueue calls will be no-ops');
+    }
   }
 
   /**
@@ -104,10 +107,11 @@ export class NotificationQueueService implements OnModuleInit {
       ? input.scheduledAt!.getTime() - Date.now()
       : 0;
 
-    // 4. Enqueue dans BullMQ
+    // 4. Enqueue dans BullMQ (no-op si Redis non configuré)
     const queue = this.queues[input.channel];
     if (!queue) {
-      this.logger.error(`No queue registered for channel: ${input.channel}`);
+      this.logger.warn(`Queue unavailable (Redis not configured) — notification #${saved.id} saved but not queued`);
+      await this.notificationRepo.update(saved.id, { status: NotificationStatus.FAILED, failureReason: 'queue_unavailable' });
       return saved;
     }
 

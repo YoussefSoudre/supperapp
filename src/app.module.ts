@@ -63,19 +63,19 @@ import { CityScopeGuard } from './shared/guards/city-scope.guard';
     DatabaseModule,
     RedisModule,
 
-    // ─── BullMQ (queue workers — connexion Redis partagée) ───────────────────
-    BullModule.forRootAsync({
-      inject: [ConfigService],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host: config.get<string>('REDIS_HOST', 'localhost'),
-          port: config.get<number>('REDIS_PORT', 6379),
-          password: config.get<string>('REDIS_PASSWORD'),
-          lazyConnect: true,
-          enableOfflineQueue: false,
-        },
+    // ─── BullMQ — uniquement si REDIS_HOST est défini ────────────────────────
+    ...(process.env.REDIS_HOST ? [
+      BullModule.forRootAsync({
+        inject: [ConfigService],
+        useFactory: (config: ConfigService) => ({
+          connection: {
+            host:     config.get<string>('REDIS_HOST'),
+            port:     config.get<number>('REDIS_PORT', 6379),
+            password: config.get<string>('REDIS_PASSWORD'),
+          },
+        }),
       }),
-    }),
+    ] : []),
 
     // ─── Domain Modules (ordre: pas de dépendances circulaires) ─────────────
     CitiesModule,        // aucune dépendance

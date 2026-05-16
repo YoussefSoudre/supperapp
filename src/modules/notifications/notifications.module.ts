@@ -68,32 +68,28 @@ import { NotificationsController } from './presentation/notifications.controller
       inject: [ConfigService],
     }),
 
-    // BullMQ — connexion globale + enregistrement des 5 queues
-    BullModule.forRootAsync({
-      imports: [ConfigModule],
-      useFactory: (config: ConfigService) => ({
-        connection: {
-          host:             config.get<string>('REDIS_HOST', 'localhost'),
-          port:             config.get<number>('REDIS_PORT', 6379),
-          password:         config.get<string>('REDIS_PASSWORD'),
-          lazyConnect:      true,
-          enableOfflineQueue: false,
-        },
-        defaultJobOptions: {
-          removeOnComplete: 100,
-          removeOnFail:     500,
-        },
+    // BullMQ — uniquement si Redis est configuré
+    ...(process.env.REDIS_HOST ? [
+      BullModule.forRootAsync({
+        imports: [ConfigModule],
+        useFactory: (config: ConfigService) => ({
+          connection: {
+            host:     config.get<string>('REDIS_HOST'),
+            port:     config.get<number>('REDIS_PORT', 6379),
+            password: config.get<string>('REDIS_PASSWORD'),
+          },
+          defaultJobOptions: { removeOnComplete: 100, removeOnFail: 500 },
+        }),
+        inject: [ConfigService],
       }),
-      inject: [ConfigService],
-    }),
-
-    BullModule.registerQueue(
-      { name: NOTIFICATION_QUEUES.PUSH },
-      { name: NOTIFICATION_QUEUES.SMS },
-      { name: NOTIFICATION_QUEUES.EMAIL },
-      { name: NOTIFICATION_QUEUES.INAPP },
-      { name: NOTIFICATION_QUEUES.WEBSOCKET },
-    ),
+      BullModule.registerQueue(
+        { name: NOTIFICATION_QUEUES.PUSH },
+        { name: NOTIFICATION_QUEUES.SMS },
+        { name: NOTIFICATION_QUEUES.EMAIL },
+        { name: NOTIFICATION_QUEUES.INAPP },
+        { name: NOTIFICATION_QUEUES.WEBSOCKET },
+      ),
+    ] : []),
   ],
 
   controllers: [NotificationsController],
@@ -111,12 +107,10 @@ import { NotificationsController } from './presentation/notifications.controller
     SmsAdapter,
     EmailAdapter,
 
-    // BullMQ Processors
-    PushProcessor,
-    SmsProcessor,
-    EmailProcessor,
-    InAppProcessor,
-    WebSocketProcessor,
+    // BullMQ Processors — uniquement si Redis est configuré
+    ...(process.env.REDIS_HOST ? [
+      PushProcessor, SmsProcessor, EmailProcessor, InAppProcessor, WebSocketProcessor,
+    ] : []),
 
     // WebSocket Gateway
     NotificationGateway,
