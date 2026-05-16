@@ -24,24 +24,10 @@ class EnvironmentVariables {
   @IsOptional()
   PORT: number = 3000;
 
-  // ─── Base de données ─────────────────────────────────────────────────────
+  // ─── Base de données (Supabase) ──────────────────────────────────────────
 
   @IsString()
-  DB_HOST: string;
-
-  @IsInt()
-  @Min(1)
-  @IsOptional()
-  DB_PORT: number = 5432;
-
-  @IsString()
-  DB_USER: string;
-
-  @IsString()
-  DB_PASSWORD: string;
-
-  @IsString()
-  DB_NAME: string;
+  DATABASE_URL: string;
 
   // ─── Redis ───────────────────────────────────────────────────────────────
 

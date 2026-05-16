@@ -1,29 +1,39 @@
 import { Body, Controller, HttpCode, HttpStatus, Post, Query, Request, UseGuards } from '@nestjs/common';
 import {
-  ApiTags, ApiOperation, ApiBearerAuth,
-  ApiResponse, ApiBody, ApiQuery,
-  ApiCreatedResponse, ApiOkResponse, ApiNoContentResponse,
-  ApiBadRequestResponse, ApiUnauthorizedResponse, ApiTooManyRequestsResponse,
+  ApiBadRequestResponse,
+  ApiBearerAuth,
+  ApiCreatedResponse,
+  ApiNoContentResponse,
+  ApiOkResponse,
+  ApiOperation,
+  ApiQuery,
+  ApiTags,
+  ApiTooManyRequestsResponse,
+  ApiUnauthorizedResponse,
 } from '@nestjs/swagger';
 import { AuthService } from '../application/auth.service';
 import { OtpService } from '../application/services/otp.service';
 import { LoginDto } from '../application/dto/login.dto';
 import { RegisterDto } from '../application/dto/register.dto';
-import { SendOtpDto, VerifyOtpDto, RefreshTokenDto } from '../application/dto/otp.dto';
+import { RefreshTokenDto, SendOtpDto, VerifyOtpDto } from '../application/dto/otp.dto';
 import { Public } from '../../../shared/decorators/public.decorator';
 import { BruteForceGuard } from '../../../shared/guards/brute-force.guard';
 import {
-  AuthTokensDto, OtpResponseDto, OtpVerifyResponseDto,
-  ValidationErrorDto, UnauthorizedDto, TooManyRequestsDto,
+  AuthTokensDto,
+  OtpResponseDto,
+  TooManyRequestsDto,
+  UnauthorizedDto,
+  ValidationErrorDto,
 } from '../../../shared/dto/swagger-responses.dto';
 
 @ApiTags('Auth')
 @Controller({ path: 'auth', version: '1' })
 export class AuthController {
-  constructor(
+  constructor(/**/
     private readonly authService: AuthService,
     private readonly otpService: OtpService,
-  ) {}
+  ) {
+  }
 
   @Public()
   @UseGuards(BruteForceGuard)
@@ -45,7 +55,12 @@ export class AuthController {
   })
   @ApiCreatedResponse({
     description: 'Compte créé — OTP envoyé par SMS, en attente de vérification',
-    schema: { example: { message: 'Account created. Please verify your phone number with the OTP sent by SMS.', phone: '+22655047747' } },
+    schema: {
+      example: {
+        message: 'Account created. Please verify your phone number with the OTP sent by SMS.',
+        phone: '+22655047747',
+      },
+    },
   })
   @ApiBadRequestResponse({ type: ValidationErrorDto, description: 'Données invalides (téléphone, email…)' })
   register(@Body() dto: RegisterDto, @Query('cityId') cityId: string) {
