@@ -25,6 +25,6 @@ import { RedisModule } from '../../infrastructure/redis/redis.module';
   ],
   controllers: [AuthController],
   providers: [AuthService, TokenService, OtpService, JwtStrategy],
-  exports: [AuthService, JwtModule],
+  exports: [AuthService, TokenService, JwtModule],
 })
 export class AuthModule {}

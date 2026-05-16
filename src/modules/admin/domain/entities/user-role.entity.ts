@@ -25,40 +25,40 @@ import { Role } from './role.entity';
 @Index('idx_ur_user_city', ['userId', 'cityId'])
 export class UserRole {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ type: 'uuid', name: 'user_id' })
-  userId: string;
+  userId!: string;
 
   @Column({ type: 'uuid', name: 'role_id' })
-  roleId: string;
+  roleId!: string;
 
   @ManyToOne(() => Role, (r) => r.userRoles, { eager: false })
   @JoinColumn({ name: 'role_id' })
-  role: Role;
+  role!: Role;
 
   /**
    * Ville pour les rôles scope=CITY.
    * NULL pour les rôles scope=GLOBAL.
    */
   @Column({ type: 'uuid', nullable: true, name: 'city_id' })
-  cityId: string | null;
+  cityId!: string | null;
 
-  /** UUID de l'admin qui a accordé ce rôle */
-  @Column({ type: 'uuid', name: 'granted_by' })
-  grantedBy: string;
+  /** UUID de l'admin qui a accordé ce rôle (null pour les rôles système/migration) */
+  @Column({ type: 'uuid', nullable: true, name: 'granted_by' })
+  grantedBy!: string | null;
 
   /** Date d'expiration automatique (null = permanent) */
   @Column({ type: 'timestamp', nullable: true, name: 'expires_at' })
-  expiresAt: Date | null;
+  expiresAt!: Date | null;
 
   @Column({ type: 'boolean', default: true, name: 'is_active' })
-  isActive: boolean;
+  isActive!: boolean;
 
   /** Raison optionnelle pour l'audit */
   @Column({ type: 'text', nullable: true })
-  reason: string | null;
+  reason!: string | null;
 
   @CreateDateColumn({ name: 'granted_at' })
-  grantedAt: Date;
+  grantedAt!: Date;
 }
