@@ -1,6 +1,6 @@
 import { NestFactory } from '@nestjs/core';
 import { NestExpressApplication } from '@nestjs/platform-express';
-import { VersioningType, ValidationPipe, Logger } from '@nestjs/common';
+import { Logger, ValidationPipe, VersioningType } from '@nestjs/common';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { join } from 'path';
 import * as express from 'express';
@@ -21,22 +21,22 @@ async function bootstrap(): Promise<void> {
     helmet({
       contentSecurityPolicy: {
         directives: {
-          defaultSrc:  ["'self'"],
-          scriptSrc:   ["'self'"],
-          styleSrc:    ["'self'", "'unsafe-inline'"],   // Swagger UI inline styles
-          imgSrc:      ["'self'", 'data:', 'https:'],
-          connectSrc:  ["'self'"],
-          fontSrc:     ["'self'", 'https:'],
-          objectSrc:   ["'none'"],
+          defaultSrc: ['\'self\''],
+          scriptSrc: ['\'self\''],
+          styleSrc: ['\'self\'', '\'unsafe-inline\''],   // Swagger UI inline styles
+          imgSrc: ['\'self\'', 'data:', 'https:'],
+          connectSrc: ['\'self\''],
+          fontSrc: ['\'self\'', 'https:'],
+          objectSrc: ['\'none\''],
           upgradeInsecureRequests: [],
         },
       },
       hsts: {
-        maxAge:            31536000,  // 1 an
+        maxAge: 31536000,  // 1 an
         includeSubDomains: true,
-        preload:           true,
+        preload: true,
       },
-      referrerPolicy:         { policy: 'strict-origin-when-cross-origin' },
+      referrerPolicy: { policy: 'strict-origin-when-cross-origin' },
       crossOriginEmbedderPolicy: false,  // nécessaire pour Swagger UI
     }),
   );

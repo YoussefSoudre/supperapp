@@ -8,18 +8,15 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       imports: [ConfigModule],
       useFactory: (config: ConfigService) => ({
         type: 'postgres',
-        host: config.get<string>('DB_HOST', 'localhost'),
-        port: config.get<number>('DB_PORT', 5432),
-        username: config.get<string>('DB_USER', 'postgres'),
-        password: config.get<string>('DB_PASSWORD', 'postgres'),
-        database: config.get<string>('DB_NAME', 'superapp_bf'),
+        url: config.getOrThrow<string>('DATABASE_URL'),
+        ssl: { rejectUnauthorized: false },
         entities: [__dirname + '/../../modules/**/*.entity{.ts,.js}'],
         migrations: [__dirname + '/migrations/*{.ts,.js}'],
-        synchronize: true,           // TODO: remettre false après création des tables
+        synchronize: config.get('NODE_ENV') !== 'production',
         migrationsRun: true,
         logging: config.get('NODE_ENV') === 'development',
         extra: {
-          max: 20,                   // connection pool size
+          max: 10,
           idleTimeoutMillis: 30000,
         },
       }),
