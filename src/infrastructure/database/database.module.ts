@@ -18,6 +18,8 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
         extra: {
           max: 10,
           idleTimeoutMillis: 30000,
+          // Force IPv4 — Render containers cannot reach IPv6 addresses
+          family: 4,
         },
       }),
       inject: [ConfigService],
