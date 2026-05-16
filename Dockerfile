@@ -28,6 +28,9 @@ COPY --from=base --chown=nestjs:nodejs /app/node_modules ./node_modules
 COPY --from=build --chown=nestjs:nodejs /app/dist ./dist
 COPY --chown=nestjs:nodejs package.json ./
 
+RUN mkdir -p /app/uploads/tmp /app/uploads/announcements /app/uploads/kyc && \
+    chown -R nestjs:nodejs /app/uploads
+
 USER nestjs
 EXPOSE 3000
 
