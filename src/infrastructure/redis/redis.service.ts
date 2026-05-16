@@ -5,32 +5,43 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  /** Exposé en public pour permettre les commandes avancées (pipeline, GEO, XREADGROUP) */
-  client: Redis;
+  client: Redis | null = null;
 
   constructor(private readonly config: ConfigService) {}
 
+  get available(): boolean {
+    return this.client !== null;
+  }
+
   onModuleInit(): void {
+    const host = this.config.get<string>('REDIS_HOST');
+    if (!host) {
+      this.logger.warn('REDIS_HOST not set — Redis disabled, using in-memory fallbacks');
+      return;
+    }
     this.client = new Redis({
-      host: this.config.get<string>('REDIS_HOST', 'localhost'),
+      host,
       port: this.config.get<number>('REDIS_PORT', 6379),
       password: this.config.get<string>('REDIS_PASSWORD'),
       db: 0,
+      lazyConnect: true,
       retryStrategy: (times) => Math.min(times * 50, 2000),
     });
     this.client.on('connect', () => this.logger.log('Redis connected'));
-    this.client.on('error', (err) => this.logger.error('Redis error', err));
+    this.client.on('error', (err) => this.logger.error('Redis error', err.message));
+    void this.client.connect().catch(() => {});
   }
 
   async onModuleDestroy(): Promise<void> {
-    await this.client.quit();
+    if (this.client) await this.client.quit();
   }
 
   async get(key: string): Promise<string | null> {
-    return this.client.get(key);
+    return this.client ? this.client.get(key) : null;
   }
 
   async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    if (!this.client) return;
     if (ttlSeconds) {
       await this.client.set(key, value, 'EX', ttlSeconds);
     } else {
@@ -39,11 +50,11 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
   }
 
   async del(key: string): Promise<void> {
-    await this.client.del(key);
+    if (this.client) await this.client.del(key);
   }
 
   async getJson<T>(key: string): Promise<T | null> {
-    const data = await this.client.get(key);
+    const data = await this.get(key);
     return data ? (JSON.parse(data) as T) : null;
   }
 
@@ -51,12 +62,7 @@ export class RedisService implements OnModuleInit, OnModuleDestroy {
     await this.set(key, JSON.stringify(value), ttlSeconds);
   }
 
-  /** Cache-aside pattern avec fallback */
-  async getOrSet<T>(
-    key: string,
-    factory: () => Promise<T>,
-    ttlSeconds = 300,
-  ): Promise<T> {
+  async getOrSet<T>(key: string, factory: () => Promise<T>, ttlSeconds = 300): Promise<T> {
     const cached = await this.getJson<T>(key);
     if (cached !== null) return cached;
     const value = await factory();

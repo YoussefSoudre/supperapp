@@ -32,7 +32,8 @@ class EnvironmentVariables {
   // ─── Redis ───────────────────────────────────────────────────────────────
 
   @IsString()
-  REDIS_HOST: string;
+  @IsOptional()
+  REDIS_HOST?: string;
 
   @IsInt()
   @Min(1)
