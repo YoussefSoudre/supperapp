@@ -26,6 +26,7 @@ import {
 } from './dto/modify-ride.dto';
 import { RideFilterDto } from './dto/ride-filter.dto';
 import { RIDE_REPOSITORY, IRideRepository } from '../domain/interfaces/ride-repository.interface';
+import { RideStatus } from '../domain/entities/ride.entity';
 import {
   RideResponseDto, ValidationErrorDto, UnauthorizedDto, NotFoundDto,
 } from '../../../shared/dto/swagger-responses.dto';
@@ -84,6 +85,77 @@ export class RidesController {
       order: sortOrder,
       filters: rest,
     });
+  }
+
+  @Get('stats')
+  @ApiOperation({
+    summary: 'Statistiques des courses de l\'utilisateur',
+    description: 'Retourne les statistiques globales : total, actives, terminées, annulées, revenu moyen, etc.',
+  })
+  @ApiOkResponse({
+    description: 'Statistiques des courses',
+    schema: {
+      example: {
+        totalRides: 150,
+        activeRides: 2,
+        ongoingRides: 1,
+        completedRides: 120,
+        cancelledRides: 28,
+        totalRevenue: 450000,
+        averageFare: 3750,
+        averagePrice: 3750,
+        averageRating: 4.6,
+        averageDuration: 1245
+      }
+    }
+  })
+  @ApiUnauthorizedResponse({ type: UnauthorizedDto })
+  async getStats(@Request() req: { user: { id: string } }) {
+    const rides = await this.rideRepo.findByUserId(req.user.id, {
+      page: 1,
+      limit: 10000, // Get all rides for stats
+      orderBy: 'createdAt',
+      order: 'DESC',
+      filters: {},
+    });
+
+    const totalRides = rides.total || 0;
+    const allRides = rides.data || [];
+    
+    const activeRides = allRides.filter(r => 
+      [RideStatus.PENDING, RideStatus.SEARCHING, RideStatus.ACCEPTED, RideStatus.SCHEDULED].includes(r.status)
+    ).length;
+    
+    const ongoingRides = allRides.filter(r => r.status === RideStatus.IN_PROGRESS).length;
+    const completedRides = allRides.filter(r => r.status === RideStatus.COMPLETED).length;
+    const cancelledRides = allRides.filter(r => r.status === RideStatus.CANCELLED).length;
+    
+    const completedRidesData = allRides.filter(r => r.status === RideStatus.COMPLETED);
+    const totalRevenue = completedRidesData.reduce((sum, r) => sum + (r.finalPrice || 0), 0);
+    const averageFare = completedRides > 0 ? totalRevenue / completedRides : 0;
+    
+    const ratedRides = completedRidesData.filter(r => r.userRating);
+    const averageRating = ratedRides.length > 0 
+      ? ratedRides.reduce((sum, r) => sum + (r.userRating || 0), 0) / ratedRides.length 
+      : 0;
+    
+    const ridesWithDuration = completedRidesData.filter(r => r.durationSeconds);
+    const averageDuration = ridesWithDuration.length > 0
+      ? ridesWithDuration.reduce((sum, r) => sum + (r.durationSeconds || 0), 0) / ridesWithDuration.length
+      : 0;
+
+    return {
+      totalRides,
+      activeRides,
+      ongoingRides,
+      completedRides,
+      cancelledRides,
+      totalRevenue,
+      averageFare: Math.round(averageFare),
+      averagePrice: Math.round(averageFare),
+      averageRating: Math.round(averageRating * 10) / 10,
+      averageDuration: Math.round(averageDuration)
+    };
   }
 
   @Get(':id')

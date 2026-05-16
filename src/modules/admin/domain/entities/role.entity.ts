@@ -32,41 +32,41 @@ export enum RoleScope {
 @Index('idx_roles_scope', ['scope'])
 export class Role {
   @PrimaryGeneratedColumn('uuid')
-  id: string;
+  id!: string;
 
   @Column({ length: 100 })
-  name: string; // Nom lisible : "City Admin"
+  name!: string; // Nom lisible : "City Admin"
 
   @Column({ length: 100, unique: true })
-  slug: string; // Clé machine : "city_admin"
+  slug!: string; // Clé machine : "city_admin"
 
   /** global = toute la plateforme | city = scopé à une ville via UserRole.cityId */
   @Column({ type: 'enum', enum: RoleScope, default: RoleScope.CITY })
-  scope: RoleScope;
+  scope!: RoleScope;
 
   @Column({ type: 'text', nullable: true })
-  description: string | null;
+  description!: string | null;
 
   /** Couleur hex pour le dashboard (ex: #E53E3E) */
   @Column({ type: 'varchar', length: 20, nullable: true })
-  color: string | null;
+  color!: string | null;
 
   /** Rôle système : non supprimable, non renommable */
   @Column({ type: 'boolean', default: false, name: 'is_system' })
-  isSystem: boolean;
+  isSystem!: boolean;
 
   @Column({ type: 'boolean', default: true, name: 'is_active' })
-  isActive: boolean;
+  isActive!: boolean;
 
   @OneToMany(() => RolePermission, (rp) => rp.role)
-  rolePermissions: RolePermission[];
+  rolePermissions!: RolePermission[];
 
   @OneToMany(() => UserRole, (ur) => ur.role)
-  userRoles: UserRole[];
+  userRoles!: UserRole[];
 
   @CreateDateColumn({ name: 'created_at' })
-  createdAt: Date;
+  createdAt!: Date;
 
   @UpdateDateColumn({ name: 'updated_at' })
-  updatedAt: Date;
+  updatedAt!: Date;
 }

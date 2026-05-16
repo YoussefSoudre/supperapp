@@ -17,15 +17,15 @@ export class CreateRoleDto {
   @IsString()
   @MinLength(2)
   @MaxLength(64)
-  name: string;
+  name!: string;
 
   @IsString()
   @MinLength(2)
   @MaxLength(64)
-  slug: string;
+  slug!: string;
 
   @IsEnum(RoleScope)
-  scope: RoleScope;
+  scope!: RoleScope;
 
   @IsOptional()
   @IsString()
@@ -60,14 +60,14 @@ export class UpdateRoleDto {
 export class AddPermissionsToRoleDto {
   @IsArray()
   @IsString({ each: true })
-  slugs: string[];
+  slugs!: string[];
 }
 
 // ─── UserRole DTOs ────────────────────────────────────────────────────────────
 
 export class AssignRoleDto {
   @IsUUID()
-  roleId: string;
+  roleId!: string;
 
   @IsOptional()
   @IsUUID()
@@ -121,13 +121,13 @@ export class AuditLogQueryDto {
 
 export class CreatePermissionDto {
   @IsString()
-  slug: string;
+  slug!: string;
 
   @IsString()
-  resource: string;
+  resource!: string;
 
   @IsString()
-  action: string;
+  action!: string;
 
   @IsOptional()
   @IsString()

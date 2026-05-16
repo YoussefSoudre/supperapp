@@ -7,6 +7,7 @@ import {
   Logger,
 } from '@nestjs/common';
 import { Request, Response } from 'express';
+import { QueryFailedError } from 'typeorm';
 
 const IS_PROD = process.env.NODE_ENV === 'production';
 
@@ -19,10 +20,18 @@ export class GlobalExceptionFilter implements ExceptionFilter {
     const response = ctx.getResponse<Response>();
     const request  = ctx.getRequest<Request>();
 
-    const status =
+    let status =
       exception instanceof HttpException
         ? exception.getStatus()
         : HttpStatus.INTERNAL_SERVER_ERROR;
+
+    const isDbUniqueViolation =
+      exception instanceof QueryFailedError &&
+      (((exception as any).code === '23505') || ((exception as any).driverError?.code === '23505'));
+
+    if (isDbUniqueViolation) {
+      status = HttpStatus.CONFLICT;
+    }
 
     const isServerError = status >= 500;
 
@@ -49,6 +58,11 @@ export class GlobalExceptionFilter implements ExceptionFilter {
       } else {
         message = raw;
       }
+    } else if (isDbUniqueViolation) {
+      const detail = (exception as any).detail ?? (exception as any).driverError?.detail;
+      message = IS_PROD
+        ? 'Conflit : une valeur unique existe déjà.'
+        : detail ?? 'Une valeur unique en double a été trouvée.';
     } else {
       // Erreur non-HTTP (ex: crash TypeORM) — masquer en prod
       message = IS_PROD

@@ -1,6 +1,6 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, InternalServerErrorException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { Repository, QueryFailedError } from 'typeorm';
 import * as bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { User, UserStatus } from '../../users/domain/entities/user.entity';
@@ -41,11 +41,16 @@ export class AuthService {
 
   async register(dto: RegisterDto, cityId: string): Promise<PendingVerificationResponse> {
     dto.phone = this.normalizePhone(dto.phone);
-    const existing = await this.userRepo.findOne({ where: { phone: dto.phone } });
-    if (existing) throw new ConflictException('Phone number already registered');
+
+    const existingPhone = await this.userRepo.findOne({ where: { phone: dto.phone } });
+    if (existingPhone) throw new ConflictException('Phone number already registered');
+
+    if (dto.email) {
+      const existingEmail = await this.userRepo.findOne({ where: { email: dto.email } });
+      if (existingEmail) throw new ConflictException('Email already registered');
+    }
 
     const passwordHash = await bcrypt.hash(dto.password, 12);
-    const referralCode = this.generateReferralCode(dto.firstName);
 
     const user = this.userRepo.create({
       firstName: dto.firstName,
@@ -54,7 +59,7 @@ export class AuthService {
       email: dto.email ?? null,
       passwordHash,
       cityId,
-      referralCode,
+      referralCode: '',
       referredById: null,
       status: UserStatus.INACTIVE,   // compte inactif jusqu'à vérification OTP
       phoneVerified: false,
@@ -65,7 +70,36 @@ export class AuthService {
       deletedAt: null,
     });
 
-    const saved = await this.userRepo.save(user);
+    let saved;
+    const maxReferralAttempts = 5;
+    for (let attempt = 0; attempt < maxReferralAttempts; attempt += 1) {
+      user.referralCode = this.generateReferralCode(dto.firstName);
+      try {
+        saved = await this.userRepo.save(user);
+        break;
+      } catch (error) {
+        const isUniqueViolation =
+          error instanceof QueryFailedError &&
+          ((error as any).code === '23505' || (error as any).driverError?.code === '23505');
+
+        if (!isUniqueViolation) throw error;
+
+        const detail = (error as any).detail as string | undefined;
+        if (detail && detail.includes('referral_code')) {
+          continue; // collision on generated referral code — retry
+        }
+
+        if (detail && (detail.includes('phone') || detail.includes('email'))) {
+          throw new ConflictException('Duplicate value for phone or email');
+        }
+
+        throw new InternalServerErrorException('Unable to create user due to database constraint.');
+      }
+    }
+
+    if (!saved) {
+      throw new InternalServerErrorException('Unable to generate a unique referral code. Please try again.');
+    }
 
     const payload: UserRegisteredPayload = {
       version: 1,

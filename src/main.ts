@@ -78,52 +78,8 @@ async function bootstrap(): Promise<void> {
   // ─── Swagger ─────────────────────────────────────────────────────────────
   if (process.env.NODE_ENV !== 'production') {
     const config = new DocumentBuilder()
-      .setTitle('SuperApp BF API')
-      .setDescription(
-        `## Super Application Burkina Faso 🇧🇫
-API REST versionnée (URI versioning — préfixe \`/api/v1/\`).
-
-### Modules disponibles
-| Module | Description |
-|--------|-------------|
-| **Auth** | Inscription, connexion, OTP SMS, refresh token, déconnexion |
-| **Users** | Profil utilisateur, liste admin filtrée |
-| **Drivers** | Profil chauffeur, gestion disponibilité (online/offline) |
-| **Rides** | Courses VTC — création, acceptation, suivi, annulation, notation |
-| **Delivery** | Livraison de colis — création et suivi avec filtres avancés |
-| **Food** | Commandes de repas — restaurants, menu, commandes |
-| **Wallet** | Wallet interne XOF — solde, transactions crédit/débit |
-| **Payments** | Paiements mobile money (Orange, Moov, Coris) |
-| **Pricing** | Calcul dynamique et configuration des tarifs par ville |
-| **Referral** | Programme de parrainage — génération, rewards |
-| **Notifications** | Push, SMS, In-App — envoi, broadcast, statistiques |
-| **Cities** | Gestion des villes couvertes |
-| **Admin** | RBAC — rôles, permissions, assignation |
-| **Analytics** | KPIs, rapports de revenus, activité drivers |
-
-### Authentification
-Toutes les routes protégées nécessitent un **Bearer JWT** dans le header \`Authorization\`.
-\`\`\`
-Authorization: Bearer <access_token>
-\`\`\`
-L'access_token est valable **15 minutes**. Utilisez \`POST /auth/refresh\` pour en obtenir un nouveau.
-
-### Codes de réponse communs
-| Code | Signification |
-|------|---------------|
-| 200 | Succès avec body |
-| 201 | Ressource créée |
-| 204 | Succès sans body |
-| 400 | Données invalides |
-| 401 | Non authentifié |
-| 403 | Accès refusé |
-| 404 | Ressource introuvable |
-| 422 | Erreur de validation |
-| 429 | Trop de requêtes |
-
-> **Devise** : XOF (Franc CFA). Tous les montants sont exprimés en **centimes** (ex: 50000 centimes = 500 FCFA).
-      `,
-      )
+      .setTitle('API')
+      .setDescription('')
       .setVersion('1.0')
       .setContact('SuperApp BF Team', 'https://superapp.bf', 'dev@superapp.bf')
       .setLicense('Propriétaire', '')
@@ -168,7 +124,7 @@ L'access_token est valable **15 minutes**. Utilisez \`POST /auth/refresh\` pour 
         showRequestDuration: true,
         tryItOutEnabled: true,
       },
-      customSiteTitle: 'SuperApp BF — API Docs',
+      customSiteTitle: 'API Docs',
       customCss: `
         .swagger-ui .topbar { background-color: #1a1a2e; }
         .swagger-ui .topbar .link { display: none; }
@@ -180,8 +136,8 @@ L'access_token est valable **15 minutes**. Utilisez \`POST /auth/refresh\` pour 
 
   const port = process.env.PORT ?? 3000;
   await app.listen(port);
-  logger.log(`🚀 SuperApp BF API running on: http://localhost:${port}/api`);
-  logger.log(`📖 Swagger docs: http://localhost:${port}/docs`);
+  logger.log(`SuperApp BF API running on: http://localhost:${port}/api`);
+  logger.log(`Swagger docs: http://localhost:${port}/docs`);
 }
 
 void bootstrap();
