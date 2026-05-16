@@ -16,7 +16,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
     blockDuration: number,
     throttlerName: string,
   ): Promise<{ totalHits: number; timeToExpire: number; isBlocked: boolean; timeToBlockExpire: number }> {
-    if (this.redisService.available && this.redisService.client) {
+    if (this.redisService.available) {
       return this.incrementRedis(key, ttl, limit, blockDuration, throttlerName);
     }
     return this.incrementMemory(key, ttl);
@@ -25,7 +25,7 @@ export class RedisThrottlerStorage implements ThrottlerStorage {
   private async incrementRedis(
     key: string, ttl: number, limit: number, blockDuration: number, throttlerName: string,
   ): Promise<{ totalHits: number; timeToExpire: number; isBlocked: boolean; timeToBlockExpire: number }> {
-    const client   = this.redisService.client!;
+    const client   = this.redisService.client;
     const redisKey = `throttle:${throttlerName}:${key}`;
     const blockKey = `throttle:${throttlerName}:${key}:block`;
     const ttlSec   = Math.ceil(ttl / 1000);

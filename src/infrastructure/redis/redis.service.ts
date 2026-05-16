@@ -5,52 +5,56 @@ import Redis from 'ioredis';
 @Injectable()
 export class RedisService implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(RedisService.name);
-  client: Redis | null = null;
+  // Always a Redis instance — lazyConnect means no crash when host is absent
+  client: Redis;
 
   constructor(private readonly config: ConfigService) {}
 
   get available(): boolean {
-    return this.client !== null;
+    return this.client.status === 'ready';
   }
 
   onModuleInit(): void {
-    const host = this.config.get<string>('REDIS_HOST');
-    if (!host) {
-      this.logger.warn('REDIS_HOST not set — Redis disabled, using in-memory fallbacks');
-      return;
-    }
+    const host = this.config.get<string>('REDIS_HOST', 'localhost');
+    const redisConfigured = !!this.config.get<string>('REDIS_HOST');
+
     this.client = new Redis({
       host,
       port: this.config.get<number>('REDIS_PORT', 6379),
       password: this.config.get<string>('REDIS_PASSWORD'),
       db: 0,
       lazyConnect: true,
-      retryStrategy: (times) => Math.min(times * 50, 2000),
+      enableOfflineQueue: false,
+      // Stop retrying if Redis is not configured — avoids flood of error logs
+      retryStrategy: redisConfigured ? (times) => Math.min(times * 200, 5000) : () => null,
     });
-    this.client.on('connect', () => this.logger.log('Redis connected'));
-    this.client.on('error', (err) => this.logger.error('Redis error', err.message));
-    void this.client.connect().catch(() => {});
-  }
 
-  async onModuleDestroy(): Promise<void> {
-    if (this.client) await this.client.quit();
-  }
-
-  async get(key: string): Promise<string | null> {
-    return this.client ? this.client.get(key) : null;
-  }
-
-  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
-    if (!this.client) return;
-    if (ttlSeconds) {
-      await this.client.set(key, value, 'EX', ttlSeconds);
+    if (redisConfigured) {
+      void this.client.connect().catch(() => {});
+      this.client.on('connect', () => this.logger.log('Redis connected'));
+      this.client.on('error', (err) => this.logger.error('Redis error', err.message));
     } else {
-      await this.client.set(key, value);
+      this.logger.warn('REDIS_HOST not set — Redis disabled, falling back to in-memory where possible');
     }
   }
 
+  async onModuleDestroy(): Promise<void> {
+    if (this.client.status !== 'end') await this.client.quit().catch(() => {});
+  }
+
+  async get(key: string): Promise<string | null> {
+    try { return await this.client.get(key); } catch { return null; }
+  }
+
+  async set(key: string, value: string, ttlSeconds?: number): Promise<void> {
+    try {
+      if (ttlSeconds) await this.client.set(key, value, 'EX', ttlSeconds);
+      else await this.client.set(key, value);
+    } catch { /* Redis not available */ }
+  }
+
   async del(key: string): Promise<void> {
-    if (this.client) await this.client.del(key);
+    try { await this.client.del(key); } catch { /* Redis not available */ }
   }
 
   async getJson<T>(key: string): Promise<T | null> {
